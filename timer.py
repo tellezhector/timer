@@ -238,11 +238,11 @@ if __name__ == "__main__":
         log_file = os.getenv("log_file")
         if log_file:
             logging.basicConfig(
-                filename=log_file, 
-                encoding="utf-8", 
+                filename=log_file,
+                encoding="utf-8",
                 level=logging.DEBUG,
-                format='{asctime} {name} {levelname:8s} {message}',
-                style='{'
+                format="{asctime} {name} {levelname:8s} {message}",
+                style="{",
             )
         main()
     except Exception as e:
