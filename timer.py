@@ -139,10 +139,13 @@ def colorize(text: str) -> str:
 def get_label(state: TimerState) -> str:
     match state:
         case TimerState.RUNNING:
+            # \uf04b
             return ""
         case TimerState.PAUSED:
+            # \uf04c
             return ""
         case TimerState.STOPPED:
+            # \uf251
             return ""
 
 

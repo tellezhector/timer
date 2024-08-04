@@ -5,9 +5,9 @@ A python-based i3blocket that displays a timer.
 * i3blocks 1.5
 
 * A font that can render the following 3 utf-8 chars:
-  * f04b - play icon 
-  * f04c - pause icon 
-  * f254 - hourglass icon
+  * \uf04b (play icon)
+  * \uf04c (pause icon)
+  * \uf251 (hourglass-start icon)
   
   [fontawesome.com](https://fontawesome.com)'s free version has all three.
 
