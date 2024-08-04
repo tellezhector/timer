@@ -8,6 +8,8 @@ import enum
 import random
 import re
 
+import timer_exceptions
+
 
 @enum.unique
 class Button(enum.Enum):
@@ -40,7 +42,7 @@ def pretty_time_to_seconds(text: str) -> int:
         return int(text)
     regex = re.compile(r"(\d+h)?(\d+m)?(\d+s)?")
     if not regex.fullmatch(text):
-        raise ValueError(f'"{text}" does not satisfy {regex}')
+        raise timer_exceptions.BadPrettyTime(f'bad pretty time "{text}"')
     res = 0
     if "h" in text:
         hrs, text = text.split("h")
@@ -60,7 +62,7 @@ def clock_format_to_seconds(text: str) -> int:
         return int(text)
     regex = re.compile(r"(\d+:)?\d+:\d+")
     if not regex.fullmatch(text):
-        raise ValueError(f'"{text}" does not satisfy {regex}')
+        raise timer_exceptions.BadClockTime(f'bad clock time "{text}"')
     parts = text.split(":")
     secs = 0
     for part in parts:
@@ -162,15 +164,17 @@ class TimeFormat(enum.Enum):
             return clock_format_to_seconds(text)
 
 
-def main():
+def build_next_state():
     start_time = int(os.getenv("start_time", 300))
     elapsed_time = int(os.getenv("elapsed_time", 0))
     increments = int(os.getenv("increments", 60))
     timer_state = TimerState(os.getenv("state", "stopped"))
     button = Button(os.getenv("button"))
-    colorOption = ColorOption(os.getenv("colorize", "never"))
+    color_option = ColorOption(os.getenv("colorize", "never"))
     use_monospace = os.getenv("monospace") is not None
     time_format = TimeFormat(os.getenv("time_format", "pretty"))
+    alarm_command = os.getenv("alarm_command")
+    read_input_command = os.getenv("read_input_command")
     match button:
         case Button.LEFT:
             if timer_state == TimerState.RUNNING:
@@ -178,7 +182,6 @@ def main():
             else:
                 timer_state = TimerState.RUNNING
         case Button.MIDDLE:
-            read_input_command = os.getenv("read_input_command")
             if read_input_command:
                 input = subprocess.check_output(
                     read_input_command, shell=True, encoding="utf-8"
@@ -194,9 +197,9 @@ def main():
         case Button.SCROLL_DOWN:
             start_time = max(start_time - increments, 0)
 
-    alarm_command = os.getenv("alarm_command")
-
-    elapsed_time = elapsed_time + 1 if timer_state == TimerState.RUNNING else elapsed_time
+    elapsed_time = (
+        elapsed_time + 1 if timer_state == TimerState.RUNNING else elapsed_time
+    )
     remaining = start_time - elapsed_time
     if start_time > 0 and remaining == 0 and alarm_command:
         subprocess.call(
@@ -205,16 +208,16 @@ def main():
         )
 
     text = time_format.seconds_to_text(remaining)
-    match colorOption:
-        case colorOption.COLORFUL:
+    match color_option:
+        case color_option.COLORFUL:
             text = colorize(text)
-        case colorOption.RED_ON_NEGATIVES:
+        case color_option.RED_ON_NEGATIVES:
             if remaining < 0:
                 text = red(text)
-        case colorOption.COLORFUL_ON_NEGATIVES:
+        case color_option.COLORFUL_ON_NEGATIVES:
             if remaining < 0:
                 text = colorize(text)
-        case colorOption.NEVER:
+        case color_option.NEVER:
             pass
 
     if use_monospace:
@@ -229,8 +232,7 @@ def main():
         "interval": 1,
     }
 
-    logging.debug(res)
-    print(json.dumps(res))
+    return res
 
 
 if __name__ == "__main__":
@@ -244,6 +246,20 @@ if __name__ == "__main__":
                 format="{asctime} {name} {levelname:8s} {message}",
                 style="{",
             )
-        main()
+        next_state = build_next_state()
+        logging.debug(next_state)
+        print(json.dumps(next_state))
     except Exception as e:
         logging.exception(e)
+        full_text = str(e)[:40]
+        short_text = str(e)[:20]
+        if isinstance(e, timer_exceptions.TimerException):
+            full_text = getattr(e, "message")
+        error_log = {
+            "full_text": full_text,
+            "short_text": short_text,
+            "background": "#FF0000",
+            "color": "#FFFFFF",
+        }
+        logging.error(error_log)
+        print(json.dumps(error_log))
