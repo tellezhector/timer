@@ -166,17 +166,17 @@ def main():
     start_time = int(os.getenv("start_time", 300))
     elapsed_time = int(os.getenv("elapsed_time", 0))
     increments = int(os.getenv("increments", 60))
-    state = TimerState(os.getenv("state", "stopped"))
+    timer_state = TimerState(os.getenv("state", "stopped"))
     button = Button(os.getenv("button"))
     colorOption = ColorOption(os.getenv("colorize", "never"))
     use_monospace = os.getenv("monospace") is not None
     time_format = TimeFormat(os.getenv("time_format", "pretty"))
     match button:
         case Button.LEFT:
-            if state == TimerState.RUNNING:
-                state = TimerState.PAUSED
+            if timer_state == TimerState.RUNNING:
+                timer_state = TimerState.PAUSED
             else:
-                state = TimerState.RUNNING
+                timer_state = TimerState.RUNNING
         case Button.MIDDLE:
             read_input_command = os.getenv("read_input_command")
             if read_input_command:
@@ -184,10 +184,10 @@ def main():
                     read_input_command, shell=True, encoding="utf-8"
                 )
                 start_time = time_format.text_to_seconds(input)
-            state = TimerState.STOPPED
+            timer_state = TimerState.STOPPED
             elapsed_time = 0
         case Button.RIGHT:
-            state = TimerState.STOPPED
+            timer_state = TimerState.STOPPED
             elapsed_time = 0
         case Button.SCROLL_UP:
             start_time = start_time + increments
@@ -196,7 +196,7 @@ def main():
 
     alarm_command = os.getenv("alarm_command")
 
-    elapsed_time = elapsed_time + 1 if state == TimerState.RUNNING else elapsed_time
+    elapsed_time = elapsed_time + 1 if timer_state == TimerState.RUNNING else elapsed_time
     remaining = start_time - elapsed_time
     if start_time > 0 and remaining == 0 and alarm_command:
         subprocess.call(
@@ -222,10 +222,10 @@ def main():
 
     res = {
         "full_text": text,
-        "label": get_label(state),
+        "label": get_label(timer_state),
         "start_time": start_time,
         "elapsed_time": elapsed_time,
-        "state": state.value,
+        "state": timer_state.value,
         "interval": 1,
     }
 
