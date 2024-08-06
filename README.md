@@ -67,6 +67,10 @@ colorize=red_on_negatives
 # (default: pretty)
 time_format=pretty
 
+# A font to apply to the blocket.
+# (default: None)
+font=Roboto
+
 # A path to write logs to. Useful for debugging.
 # (default: None)
 log_file=/tmp/timer_log.txt

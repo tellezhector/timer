@@ -109,8 +109,8 @@ def seconds_to_pretty_time(secs: int) -> str:
     return res
 
 
-def monospace(text: str) -> str:
-    return f"<span font_family='monospace'>{text}</span>"
+def set_font(text: str, font: str) -> str:
+    return f"<span font_family='{font}'>{text}</span>"
 
 
 def red(text: str) -> str:
@@ -162,7 +162,7 @@ def build_next_state():
     timer_state = TimerState(os.getenv("state", "stopped"))
     button = Button(os.getenv("button"))
     color_option = ColorOption(os.getenv("colorize", "never"))
-    use_monospace = os.getenv("monospace") is not None
+    font = os.getenv("font", None)
     time_format = TimeFormat(os.getenv("time_format", "pretty"))
     alarm_command = os.getenv("alarm_command")
     read_input_command = os.getenv("read_input_command")
@@ -211,8 +211,8 @@ def build_next_state():
         case color_option.NEVER:
             pass
 
-    if use_monospace:
-        text = monospace(text)
+    if font is not None:
+        text = set_font(text, font)
 
     res = {
         "full_text": text,
