@@ -8,6 +8,7 @@ import enum
 import random
 import re
 
+import colors
 import timer_exceptions
 
 
@@ -113,26 +114,13 @@ def monospace(text: str) -> str:
 
 
 def red(text: str) -> str:
-    colors = [
-        "#BB0A21",  # red
-    ]
-    result = ""
-    for c in text:
-        result += f"<span color='{random.choice(colors)}'>{c}</span>"
-    return result
+    return f"<span color='{colors.RED}'>{text}</span>"
 
 
 def colorize(text: str) -> str:
-    colors = [
-        "#F564A9",  # red
-        "#FFBC42",  # Xanthous (yellow)
-        "#5EB1BF",  # Moonstone (light blue)
-        "#F564A9",  # Hot pink
-        "#04F06A",  # Spring green
-    ]
     result = ""
     for c in text:
-        result += f"<span color='{random.choice(colors)}'>{c}</span>"
+        result += f"<span color='{random.choice(colors.COLORS)}'>{c}</span>"
     return result
 
 
