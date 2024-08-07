@@ -8,8 +8,17 @@ class TimerException(Exception):
         super().__init__(*[message, args])
         self.message = message
 
-class BadPrettyTime(TimerException):
+class BadValue(TimerException):
     ...
 
-class BadClockTime(TimerException):
+class BadPrettyTime(BadValue):
+    ...
+
+class BadClockTime(BadValue):
+    ...
+
+class BadInteger(BadValue):
+    ...
+
+class BadEnum(BadValue):
     ...

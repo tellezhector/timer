@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from collections.abc import Mapping
 
 import json
 import os
@@ -155,17 +156,38 @@ class TimeFormat(enum.Enum):
             return clock_format_to_seconds(text)
 
 
+def get_int(mapping: Mapping[str, str], key: str, default: int) -> int:
+    res = mapping.get(key)
+    if res is None:
+        return default
+    if res.isdigit():
+        return int(res)
+    raise timer_exceptions.BadInteger(f'{key}="{res}" not an int')
+
+
+def get_enum(
+    mapping: Mapping[str, str], enum_type: enum.EnumMeta, key: str, default: enum.Enum
+) -> enum.Enum:
+    raw = mapping.get(key)
+    if raw is None and default is not None:
+        return default
+    try:
+        return enum_type(raw)
+    except ValueError:
+        raise timer_exceptions.BadEnum(f'"{raw}" is not a {enum_type.__name__}')
+
+
 def build_next_state():
-    start_time = int(os.getenv("start_time", 300))
-    elapsed_time = int(os.getenv("elapsed_time", 0))
-    increments = int(os.getenv("increments", 60))
-    timer_state = TimerState(os.getenv("state", "stopped"))
-    button = Button(os.getenv("button"))
-    color_option = ColorOption(os.getenv("colorize", "never"))
-    font = os.getenv("font", None)
-    time_format = TimeFormat(os.getenv("time_format", "pretty"))
-    alarm_command = os.getenv("alarm_command")
-    read_input_command = os.getenv("read_input_command")
+    start_time = get_int(os.environ, "start_time", 300)
+    elapsed_time = get_int(os.environ, "elapsed_time", 0)
+    increments = get_int(os.environ, "increments", 60)
+    timer_state = get_enum(os.environ, TimerState, "state", TimerState.STOPPED)
+    button = get_enum(os.environ, Button, "button", Button.NONE)
+    color_option = get_enum(os.environ, ColorOption, "colorize", ColorOption.NEVER)
+    time_format = get_enum(os.environ, TimeFormat, "time_format", TimeFormat.PRETTY)
+    font = os.environ.get("font")
+    alarm_command = os.environ.get("alarm_command")
+    read_input_command = os.environ.get("read_input_command")
     match button:
         case Button.LEFT:
             if timer_state == TimerState.RUNNING:
