@@ -2,15 +2,8 @@ A python-based i3blocket that displays a timer.
 
 ## Dependencies
 
-* i3blocks 1.5
-
-* A font that can render the following 3 utf-8 chars:
-  * \uf04b (play icon)
-  * \uf04c (pause icon)
-  * \uf251 (hourglass-start icon)
-  
-  [fontawesome.com](https://fontawesome.com)'s free version and
-  [nerdfonts.com](https://www.nerdfonts.com) have all three.
+* i3blocks 1.5+
+* python3 3.9+
 
 ## Blocket configuration
 
@@ -75,6 +68,21 @@ font=Roboto
 # A path to write logs to. Useful for debugging.
 # (default: None)
 log_file=/tmp/timer_log.txt
+
+# Labels, labels are free text, in order to get out of the box support
+# dependency to fonts was removed, but you may want to install a font that
+# supports icon glyphs like fontawesome or nerdfonts and labels with symbols
+# like:
+#  * \uf04b (play icon)
+#  * \uf04c (pause icon)
+#  * \uf251 (hourglass-start icon)
+#
+# (default: running:)
+running_label=
+# (default: paused:)
+paused_label=
+# (default: timer:)
+stopped_label=
 ```
 
 ## How to use

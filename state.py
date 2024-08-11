@@ -60,16 +60,19 @@ def get_enum(
 class State:
     start_time: int
     increments: int
-    timer_state: TimerState
     button: Button
     color_option: colors.ColorOption
     time_format: time_format.TimeFormat
     font: str | None
     alarm_command: str | None
     read_input_command: str | None
+    running_label: str
+    stopped_label: str
+    paused_label: str
 
     # internal control - not modifiable through configuration
     elapsed_time: float
+    timer_state: TimerState
     execute_read_input_command: bool = False
     execute_alert_command: bool = False
 
@@ -81,11 +84,22 @@ class State:
             execute_alert_command=False,
         )
 
+    @property
+    def label(self) -> str:
+        match self.timer_state:
+            case TimerState.RUNNING:
+                return self.running_label
+            case TimerState.PAUSED:
+                return self.paused_label
+            case TimerState.STOPPED:
+                return self.stopped_label
+
     def build_alarm_command(self) -> str:
         return self.alarm_command.format(
             start_time=self.time_format.seconds_to_text(self.start_time)
         )
 
+    @property
     def full_text(self) -> str:
         remaining = self.start_time - self.elapsed_time
         text = self.time_format.seconds_to_text(remaining)
@@ -104,23 +118,35 @@ class State:
             text = set_font(text, self.font)
         return text
 
+    def serializable(self) -> dict[str, Any]:
+        return {
+            "full_text": self.full_text,
+            "label": self.label,
+            "start_time": self.start_time,
+            "elapsed_time": self.elapsed_time,
+            "timer_state": self.timer_state.value,
+        }
+
 
 def load_state(map_: Mapping) -> State:
     return State(
         start_time=get_int(map_, "start_time", 300),
         elapsed_time=get_int(map_, "elapsed_time", 0),
         increments=get_int(map_, "increments", 60),
-        timer_state=get_enum(map_, "state", TimerState.STOPPED),
+        timer_state=get_enum(map_, "timer_state", TimerState.STOPPED),
         button=get_enum(map_, "button", Button.NONE),
         color_option=get_enum(map_, "colorize", colors.ColorOption.NEVER),
         time_format=get_enum(map_, "time_format", time_format.TimeFormat.PRETTY),
         font=map_.get("font"),
         alarm_command=map_.get("alarm_command"),
         read_input_command=map_.get("read_input_command"),
+        running_label=map_.get("running_label", "running:"),
+        stopped_label=map_.get("stopped_label", "timer:"),
+        paused_label=map_.get("paused_label", "paused:"),
     )
 
 
-def increase_elapsed_time_if_running(increment: int):
+def increase_elapsed_time_if_running(increment: float):
     def _increase_elapsed_time(state: State):
         if state.timer_state == TimerState.RUNNING:
             new_elapsed_time = state.elapsed_time + increment
