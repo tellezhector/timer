@@ -78,11 +78,11 @@ log_file=/tmp/timer_log.txt
 #  * \uf251 (hourglass-start icon)
 #
 # (default: running:)
-running_label=
+running_label=foo
 # (default: paused:)
-paused_label=
+paused_label=bar
 # (default: timer:)
-stopped_label=
+stopped_label=baz
 ```
 
 ## How to use
