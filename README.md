@@ -87,20 +87,10 @@ stopped_label=baz
 
 ## How to use
 
-* Left click to start / pause a timer.
-
-* Scroll up to increment timer.
-
-* Scroll down to decrement timer.
-
-* Middle click to execute `read_input_command`, the `stdout` from the command
-  will be parsed as the new `start_time`.
-
-  If you are using `time_format=pretty`, the input is expected in either 
-  integers or strings in "pretty format" (300, 5m, 2h30m).
-
-  If you are using `timer_format=clock` the input is expected in either integers 
-  or string in "clock format" (300, 5:00, 2:30:00).
-
-* Right click resets the timer back to the last defined `start_time` (i.e. 
-  cancels the current timer).
+| click       |   action    |
+| ----------- | ----------- |
+|  left click | Start / pause / resume. |
+|  scroll up | Increment timer by `increment`. |
+|  scroll down | Decrement timer by `increment`. |
+|  middle click | If defined, `read_input_command` is executed and its `stdout` is parsed as the new `start_time`.<br><br> If you are using `time_format=pretty`, the input is expected in either integers or strings in "pretty format" (300, 5m, 2h30m).<br><br>If you are using `timer_format=clock` the input is expected in either integers or string in "clock format" (300, 5:00, 2:30:00).
+| right click | Resets the timer back to the last defined `start_time` (i.e. cancels the current timer).
