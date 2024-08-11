@@ -3,26 +3,11 @@ import json
 import os
 import subprocess
 import logging
-import random
 
-import colors
 import exceptions
 import state as state_lib
 from state import Button, TimerState
 
-def set_font(text: str, font: str) -> str:
-    return f"<span font_family='{font}'>{text}</span>"
-
-
-def red(text: str) -> str:
-    return f"<span color='{colors.RED}'>{text}</span>"
-
-
-def colorize(text: str) -> str:
-    result = ""
-    for c in text:
-        result += f"<span color='{random.choice(colors.COLORS)}'>{c}</span>"
-    return result
 
 
 def get_label(timer_state: TimerState) -> str:
@@ -58,9 +43,9 @@ def build_output(state: state_lib.State):
             state.timer_state = TimerState.STOPPED
             state.elapsed_time = 0
         case Button.SCROLL_UP:
-            state.start_time = start_time + state.increments
+            state.start_time = state.start_time + state.increments
         case Button.SCROLL_DOWN:
-            state.start_time = max(start_time - increments, 0)
+            state.start_time = max(state.start_time - state.increments, 0)
 
     state.elapsed_time = (
         state.elapsed_time + 1 if state.timer_state == TimerState.RUNNING else state.elapsed_time
@@ -74,21 +59,7 @@ def build_output(state: state_lib.State):
             shell=True,
         )
 
-    text = state.time_format.seconds_to_text(remaining)
-    match state.color_option:
-        case state_lib.ColorOption.COLORFUL:
-            text = colorize(text)
-        case state_lib.ColorOption.RED_ON_NEGATIVES:
-            if remaining < 0:
-                text = red(text)
-        case state_lib.ColorOption.COLORFUL_ON_NEGATIVES:
-            if remaining < 0:
-                text = colorize(text)
-        case state_lib.ColorOption.NEVER:
-            pass
-
-    if state.font is not None:
-        text = set_font(text, state.font)
+    text = state.full_text()
 
     res = {
         "full_text": text,

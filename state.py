@@ -2,6 +2,8 @@ from collections.abc import Mapping
 import dataclasses
 import enum
 import exceptions
+import colors
+import re
 
 @enum.unique
 class Button(enum.Enum):
@@ -19,14 +21,8 @@ class TimerState(enum.Enum):
     RUNNING = "running"
     PAUSED = "paused"
 
-
-@enum.unique
-class ColorOption(enum.Enum):
-    NEVER = "never"
-    COLORFUL = "colorful"
-    COLORFUL_ON_NEGATIVES = "colorful_on_negatives"
-    RED_ON_NEGATIVES = "red_on_negatives"
-
+def set_font(text: str, font: str) -> str:
+    return f"<span font_family='{font}'>{text}</span>"
 
 @enum.unique
 class TimeFormat(enum.Enum):
@@ -146,11 +142,29 @@ class State:
     increments: int
     timer_state: TimerState
     button: Button
-    color_option: ColorOption
+    color_option: colors.ColorOption
     time_format: TimeFormat
     font: str | None
     alarm_command: str | None
     read_input_command: str | None
+
+    def full_text(self):
+        remaining = self.start_time - self.elapsed_time
+        text = self.time_format.seconds_to_text(remaining)
+        match self.color_option:
+            case colors.ColorOption.COLORFUL:
+                text = colors.colorize(text)
+            case colors.ColorOption.RED_ON_NEGATIVES:
+                if remaining < 0:
+                    text = colors.red(text)
+            case colors.ColorOption.COLORFUL_ON_NEGATIVES:
+                if remaining < 0:
+                    text = colors.colorize(text)
+            case colors.ColorOption.NEVER:
+                pass
+        if self.font is not None:
+            text = set_font(text, state.font)
+        return text
 
 def load_state(mapping: Mapping) -> State:
     return State(
@@ -159,7 +173,7 @@ def load_state(mapping: Mapping) -> State:
         increments = get_int(mapping, "increments", 60),
         timer_state = get_enum(mapping, "state", TimerState.STOPPED),
         button = get_enum(mapping, "button", Button.NONE),
-        color_option = get_enum(mapping, "colorize", ColorOption.NEVER),
+        color_option = get_enum(mapping, "colorize", colors.ColorOption.NEVER),
         time_format = get_enum(mapping, "time_format", TimeFormat.PRETTY),
         font = mapping.get("font"),
         alarm_command = mapping.get("alarm_command"),
