@@ -22,44 +22,19 @@ def get_label(timer_state: TimerState) -> str:
             return ""
 
 
-def build_output(state: state_lib.State):
-    # TODO: remove state mutations from here
-    match state.button:
-        case Button.LEFT:
-            if state.timer_state == TimerState.RUNNING:
-                state.timer_state = TimerState.PAUSED
-            else:
-                state.timer_state = TimerState.RUNNING
-        case Button.MIDDLE:
-            if state.read_input_command:
-                input = subprocess.check_output(
-                    state.read_input_command, shell=True, encoding="utf-8"
-                )
-                state.start_time = state.time_format.text_to_seconds(input)
-            state.timer_state = TimerState.STOPPED
-            state.elapsed_time = 0
-        case Button.RIGHT:
-            state.timer_state = TimerState.STOPPED
-            state.elapsed_time = 0
-        case Button.SCROLL_UP:
-            state.start_time = state.start_time + state.increments
-        case Button.SCROLL_DOWN:
-            state.start_time = max(state.start_time - state.increments, 0)
+def build_output(init_state: state_lib.State):
+    _, state = state_lib.apply_click(init_state)
+    # TODO: do not assume that increment is of size 1
+    _, state = state_lib.increase_elapsed_time_if_running(1)(state)
 
-    if state.timer_state == TimerState.RUNNING:
-        state.elapsed_time += 1
-
-    remaining = state.start_time - state.elapsed_time
-    if state.start_time > 0 and remaining == 0 and state.alarm_command:
+    if state.execute_alert_command:
         subprocess.call(
-            state.alarm_command.format(
-                start_time=state.time_format.seconds_to_text(state.start_time)
-            ),
+            state.build_alarm_command(),
             shell=True,
         )
 
+    state = state.reset_transient_state()
     text = state.full_text()
-
     res = {
         "full_text": text,
         "label": get_label(state.timer_state),

@@ -1,8 +1,13 @@
 from collections.abc import Mapping
 import dataclasses
 import enum
-import exceptions
+import subprocess
+import logging
+from typing import Any, Callable
+
 import colors
+import exceptions
+import state_monad
 import time_format
 
 
@@ -51,11 +56,9 @@ def get_enum(
         raise exceptions.BadEnum(f'"{raw}" is not a {enum_type.__name__}')
 
 
-# TODO: Make this (frozen=True)
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class State:
     start_time: int
-    elapsed_time: float
     increments: int
     timer_state: TimerState
     button: Button
@@ -65,7 +68,25 @@ class State:
     alarm_command: str | None
     read_input_command: str | None
 
-    def full_text(self):
+    # internal control - not modifiable through configuration
+    elapsed_time: float
+    execute_read_input_command: bool = False
+    execute_alert_command: bool = False
+
+    def reset_transient_state(self) -> "State":
+        return dataclasses.replace(
+            self,
+            button=Button.NONE,
+            execute_read_input_command=False,
+            execute_alert_command=False,
+        )
+
+    def build_alarm_command(self) -> str:
+        return self.alarm_command.format(
+            start_time=self.time_format.seconds_to_text(self.start_time)
+        )
+
+    def full_text(self) -> str:
         remaining = self.start_time - self.elapsed_time
         text = self.time_format.seconds_to_text(remaining)
         match self.color_option:
@@ -97,3 +118,89 @@ def load_state(map_: Mapping) -> State:
         alarm_command=map_.get("alarm_command"),
         read_input_command=map_.get("read_input_command"),
     )
+
+
+def increase_elapsed_time_if_running(increment: int):
+    def _increase_elapsed_time(state: State):
+        if state.timer_state == TimerState.RUNNING:
+            new_elapsed_time = state.elapsed_time + increment
+            execute_alert_command = (
+                state.elapsed_time < state.start_time
+                and new_elapsed_time >= state.start_time
+            )
+            return (
+                None,
+                dataclasses.replace(
+                    state,
+                    elapsed_time=new_elapsed_time,
+                    execute_alert_command=execute_alert_command,
+                ),
+            )
+        return (None, state)
+
+    return _increase_elapsed_time
+
+
+def update_start_time(new_start_time: int) -> Callable[[State], tuple[Any, State]]:
+    def _update_start_time(state: State) -> tuple[Any, State]:
+        return (None, dataclasses.replace(state, start_time=new_start_time))
+
+    return _update_start_time
+
+
+def apply_click(state: State) -> tuple[Any, State]:
+    match state.button:
+        case Button.NONE:
+            return (None, state)
+        case Button.LEFT:
+            if state.timer_state == TimerState.RUNNING:
+                return (
+                    None,
+                    dataclasses.replace(state, timer_state=TimerState.PAUSED),
+                )
+            else:
+                return (
+                    None,
+                    dataclasses.replace(state, timer_state=TimerState.RUNNING),
+                )
+        case Button.MIDDLE:
+            new_state = dataclasses.replace(state)
+            if state.read_input_command:
+                input = subprocess.check_output(
+                    state.read_input_command, shell=True, encoding="utf-8"
+                )
+                new_start_time = state.time_format.text_to_seconds(input)
+                _, new_state = update_start_time(new_start_time)(new_state)
+            logging.debug(type(new_state))
+            return (
+                None,
+                dataclasses.replace(
+                    new_state,
+                    timer_state=TimerState.STOPPED,
+                    elapsed_time=0,
+                    execute_read_input_command=True,
+                ),
+            )
+        case Button.RIGHT:
+            return (
+                None,
+                dataclasses.replace(
+                    state,
+                    timer_state=TimerState.STOPPED,
+                    elapsed_time=0,
+                ),
+            )
+        case Button.SCROLL_UP:
+            return (
+                None,
+                dataclasses.replace(
+                    state, start_time=state.start_time + state.increments
+                ),
+            )
+        case Button.SCROLL_DOWN:
+            return (
+                None,
+                dataclasses.replace(
+                    state, start_time=max(state.start_time - state.increments, 0)
+                ),
+            )
