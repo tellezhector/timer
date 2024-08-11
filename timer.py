@@ -47,7 +47,7 @@ def build_output(state: state_lib.State):
             state.start_time = max(state.start_time - state.increments, 0)
 
     if state.timer_state == TimerState.RUNNING:
-        state.elapsed_time + 1
+        state.elapsed_time += 1
 
     remaining = state.start_time - state.elapsed_time
     if state.start_time > 0 and remaining == 0 and state.alarm_command:
