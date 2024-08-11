@@ -11,12 +11,14 @@ COLORS = [
     "#04F06A",  # Spring green
 ]
 
+
 @enum.unique
 class ColorOption(enum.Enum):
     NEVER = "never"
     COLORFUL = "colorful"
     COLORFUL_ON_NEGATIVES = "colorful_on_negatives"
     RED_ON_NEGATIVES = "red_on_negatives"
+
 
 def red(text: str) -> str:
     return f"<span color='{RED}'>{text}</span>"

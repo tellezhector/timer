@@ -9,7 +9,6 @@ import state as state_lib
 from state import Button, TimerState
 
 
-
 def get_label(timer_state: TimerState) -> str:
     match timer_state:
         case TimerState.RUNNING:
@@ -47,9 +46,9 @@ def build_output(state: state_lib.State):
         case Button.SCROLL_DOWN:
             state.start_time = max(state.start_time - state.increments, 0)
 
-    state.elapsed_time = (
-        state.elapsed_time + 1 if state.timer_state == TimerState.RUNNING else state.elapsed_time
-    )
+    if state.timer_state == TimerState.RUNNING:
+        state.elapsed_time + 1
+
     remaining = state.start_time - state.elapsed_time
     if state.start_time > 0 and remaining == 0 and state.alarm_command:
         subprocess.call(
@@ -66,7 +65,7 @@ def build_output(state: state_lib.State):
         "label": get_label(state.timer_state),
         "start_time": state.start_time,
         "elapsed_time": state.elapsed_time,
-        "state": state.timer_state.value
+        "state": state.timer_state.value,
     }
 
     return res
