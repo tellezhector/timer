@@ -9,7 +9,8 @@ A python-based i3blocket that displays a timer.
   * \uf04c (pause icon)
   * \uf251 (hourglass-start icon)
   
-  [fontawesome.com](https://fontawesome.com)'s free version has all three.
+  [fontawesome.com](https://fontawesome.com)'s free version and
+  [nerdfonts.com](https://www.nerdfonts.com) have all three.
 
 ## Blocket configuration
 
