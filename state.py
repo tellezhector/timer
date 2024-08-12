@@ -57,6 +57,7 @@ def get_enum(
 
 @dataclasses.dataclass(frozen=True)
 class State:
+    name: str
     start_time: int
     increments: int
     button: Button
@@ -95,7 +96,8 @@ class State:
 
     def build_alarm_command(self) -> str:
         return self.alarm_command.format(
-            start_time=self.time_format.seconds_to_text(self.start_time)
+            start_time=self.time_format.seconds_to_text(self.start_time),
+            name=self.name,
         )
 
     @property
@@ -129,6 +131,7 @@ class State:
 
 def load_state(map_: Mapping) -> State:
     return State(
+        name=map_.get("name", "timer"),
         start_time=get_int(map_, "start_time", 300),
         elapsed_time=get_int(map_, "elapsed_time", 0),
         increments=get_int(map_, "increments", 60),
