@@ -2,12 +2,11 @@ from collections.abc import Mapping
 import dataclasses
 import enum
 import subprocess
-import logging
 from typing import Any, Callable
 
 import colors
 import exceptions
-import state_monad
+from monads import StateMonad
 import time_format
 
 
@@ -146,8 +145,10 @@ def load_state(map_: Mapping) -> State:
     )
 
 
-def increase_elapsed_time_if_running(increment: float):
-    def _increase_elapsed_time(state: State):
+def increase_elapsed_time_if_running(
+    increment: float,
+) -> Callable[[State], StateMonad[State]]:
+    def _increase_elapsed_time(state: State) -> tuple[Any, State]:
         if state.timer_state == TimerState.RUNNING:
             new_elapsed_time = state.elapsed_time + increment
             execute_alert_command = (
@@ -164,17 +165,17 @@ def increase_elapsed_time_if_running(increment: float):
             )
         return (None, state)
 
-    return _increase_elapsed_time
+    return lambda _: StateMonad(_increase_elapsed_time)
 
 
-def update_start_time(new_start_time: int) -> Callable[[State], tuple[Any, State]]:
+def update_start_time(new_start_time: int) -> StateMonad[State]:
     def _update_start_time(state: State) -> tuple[Any, State]:
         return (None, dataclasses.replace(state, start_time=new_start_time))
 
     return _update_start_time
 
 
-def apply_click(state: State) -> tuple[Any, State]:
+def _apply_click(state: State) -> tuple[Any, State]:
     match state.button:
         case Button.NONE:
             return (None, state)
@@ -197,7 +198,6 @@ def apply_click(state: State) -> tuple[Any, State]:
                 )
                 new_start_time = state.time_format.text_to_seconds(input)
                 _, new_state = update_start_time(new_start_time)(new_state)
-            logging.debug(type(new_state))
             return (
                 None,
                 dataclasses.replace(
@@ -230,3 +230,7 @@ def apply_click(state: State) -> tuple[Any, State]:
                     state, start_time=max(state.start_time - state.increments, 0)
                 ),
             )
+
+
+def apply_click() -> StateMonad[State]:
+    return StateMonad.get().then(lambda _: StateMonad(_apply_click))

@@ -7,10 +7,17 @@ import logging
 import exceptions
 import state as state_lib
 
+
 def build_output(init_state: state_lib.State):
-    _, state = state_lib.apply_click(init_state)
-    # TODO: do not assume that increment is of size 1
-    _, state = state_lib.increase_elapsed_time_if_running(1)(state)
+
+    _, state = (
+        state_lib.apply_click()
+        .then(
+            # TODO: do not assume that increment is of size 1
+            state_lib.increase_elapsed_time_if_running(1)
+        )
+        .run(init_state)
+    )
 
     if state.execute_alert_command:
         subprocess.call(
