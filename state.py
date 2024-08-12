@@ -248,8 +248,15 @@ def handle_middle_click() -> StateMonad[State]:
             input = subprocess.check_output(
                 state.read_input_command, shell=True, encoding="utf-8"
             )
-            new_start_time = state.time_format.text_to_seconds(input)
-            _, _state = update_start_time(new_start_time)(_state)
+            if "=" in input:
+                key, value = input.split("=", 1)
+                if key == "timer":
+                    return (None, dataclasses.replace(_state, timer=value))
+                else:
+                    exceptions.BadValue(f"{key} is not a modifiable property")
+            else:
+                new_start_time = state.time_format.text_to_seconds(input)
+                _, _state = update_start_time(new_start_time)(_state)
         return (
             None,
             dataclasses.replace(
