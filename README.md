@@ -29,12 +29,12 @@ start_time=300
 
 # A command to execute when the timer runs out.
 #
-# The placeholder substrings `{start_time}` and `{name}` will be replaced before executing
+# The placeholder substrings `{start_time}` and `{timer}` will be replaced before executing
 # the command.
 # 
 # Keep in mind that the PATH that i3blocks uses may be different 
 # from the one in your terminal. I use: 
-# `/usr/bin/notify-send -c alarm -- "Timer is up!" "{name} ({start_time}) timer is up!"`
+# `/usr/bin/notify-send -c alarm -- "Timer is up!" "{timer} ({start_time}) timer is up!"`
 # (deafult: None)
 alarm_command=/usr/bin/foo --bar biz
 

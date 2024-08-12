@@ -11,10 +11,14 @@ import state as state_lib
 def build_output(init_state: state_lib.State):
 
     _, state = (
-        state_lib.apply_click()
+        state_lib.handle_middle_click()
+        .then(lambda _: state_lib.handle_right_click())
+        .then(lambda _: state_lib.handle_left_click())
+        .then(lambda _: state_lib.handle_scroll_down())
+        .then(lambda _: state_lib.handle_scroll_up())
         .then(
             # TODO: do not assume that increment is of size 1
-            state_lib.increase_elapsed_time_if_running(1)
+            lambda _: state_lib.increase_elapsed_time_if_running(1)
         )
         .run(init_state)
     )

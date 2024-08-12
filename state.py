@@ -57,7 +57,7 @@ def get_enum(
 
 @dataclasses.dataclass(frozen=True)
 class State:
-    name: str
+    timer: str
     start_time: int
     increments: int
     button: Button
@@ -97,7 +97,7 @@ class State:
     def build_alarm_command(self) -> str:
         return self.alarm_command.format(
             start_time=self.time_format.seconds_to_text(self.start_time),
-            name=self.name,
+            timer=self.timer,
         )
 
     @property
@@ -126,12 +126,13 @@ class State:
             "start_time": self.start_time,
             "elapsed_time": self.elapsed_time,
             "timer_state": self.timer_state.value,
+            "timer": self.timer,
         }
 
 
 def load_state(map_: Mapping) -> State:
     return State(
-        name=map_.get("name", "timer"),
+        timer=map_.get("timer", "timer"),
         start_time=get_int(map_, "start_time", 300),
         elapsed_time=get_int(map_, "elapsed_time", 0),
         increments=get_int(map_, "increments", 60),
@@ -168,72 +169,95 @@ def increase_elapsed_time_if_running(
             )
         return (None, state)
 
-    return lambda _: StateMonad(_increase_elapsed_time)
+    return StateMonad(_increase_elapsed_time)
 
 
-def update_start_time(new_start_time: int) -> StateMonad[State]:
+def update_start_time(new_start_time: int) -> Callable[[State], tuple[Any, State]]:
     def _update_start_time(state: State) -> tuple[Any, State]:
         return (None, dataclasses.replace(state, start_time=new_start_time))
 
     return _update_start_time
 
 
-def _apply_click(state: State) -> tuple[Any, State]:
-    match state.button:
-        case Button.NONE:
+def handle_left_click() -> StateMonad[State]:
+    def _handle_left_click(state: State) -> tuple[Any, State]:
+        if state.button != Button.LEFT:
             return (None, state)
-        case Button.LEFT:
-            if state.timer_state == TimerState.RUNNING:
-                return (
-                    None,
-                    dataclasses.replace(state, timer_state=TimerState.PAUSED),
-                )
-            else:
-                return (
-                    None,
-                    dataclasses.replace(state, timer_state=TimerState.RUNNING),
-                )
-        case Button.MIDDLE:
-            new_state = dataclasses.replace(state)
-            if state.read_input_command:
-                input = subprocess.check_output(
-                    state.read_input_command, shell=True, encoding="utf-8"
-                )
-                new_start_time = state.time_format.text_to_seconds(input)
-                _, new_state = update_start_time(new_start_time)(new_state)
+        if state.timer_state == TimerState.RUNNING:
             return (
                 None,
-                dataclasses.replace(
-                    new_state,
-                    timer_state=TimerState.STOPPED,
-                    elapsed_time=0,
-                    execute_read_input_command=True,
-                ),
+                dataclasses.replace(state, timer_state=TimerState.PAUSED),
             )
-        case Button.RIGHT:
-            return (
-                None,
-                dataclasses.replace(
-                    state,
-                    timer_state=TimerState.STOPPED,
-                    elapsed_time=0,
-                ),
-            )
-        case Button.SCROLL_UP:
-            return (
-                None,
-                dataclasses.replace(
-                    state, start_time=state.start_time + state.increments
-                ),
-            )
-        case Button.SCROLL_DOWN:
-            return (
-                None,
-                dataclasses.replace(
-                    state, start_time=max(state.start_time - state.increments, 0)
-                ),
-            )
+        return (
+            None,
+            dataclasses.replace(state, timer_state=TimerState.RUNNING),
+        )
+
+    return StateMonad.get().then(lambda _: StateMonad(_handle_left_click))
 
 
-def apply_click() -> StateMonad[State]:
-    return StateMonad.get().then(lambda _: StateMonad(_apply_click))
+def handle_right_click() -> StateMonad[State]:
+    def _handle_left_click(state: State) -> tuple[Any, State]:
+        if state.button != Button.RIGHT:
+            return (None, state)
+        return (
+            None,
+            dataclasses.replace(
+                state,
+                timer_state=TimerState.STOPPED,
+                elapsed_time=0,
+            ),
+        )
+
+    return StateMonad.get().then(lambda _: StateMonad(_handle_left_click))
+
+
+def handle_scroll_up() -> StateMonad[State]:
+    def _handle_scroll_up(state: State) -> tuple[Any, State]:
+        if state.button != Button.SCROLL_UP:
+            return (None, state)
+        return (
+            None,
+            dataclasses.replace(state, start_time=state.start_time + state.increments),
+        )
+
+    return StateMonad.get().then(lambda _: StateMonad(_handle_scroll_up))
+
+
+def handle_scroll_down() -> StateMonad[State]:
+    def _handle_scroll_down(state: State) -> tuple[Any, State]:
+        if state.button != Button.SCROLL_DOWN:
+            return (None, state)
+        return (
+            None,
+            dataclasses.replace(
+                state, start_time=max(state.start_time - state.increments, 0)
+            ),
+        )
+
+    return StateMonad.get().then(lambda _: StateMonad(_handle_scroll_down))
+
+
+def handle_middle_click() -> StateMonad[State]:
+    def _handle_middle_click(state: State) -> tuple[Any, State]:
+        if state.button != Button.MIDDLE:
+            return (None, state)
+
+        _state = state
+        if state.read_input_command:
+            input = subprocess.check_output(
+                state.read_input_command, shell=True, encoding="utf-8"
+            )
+            new_start_time = state.time_format.text_to_seconds(input)
+            _, _state = update_start_time(new_start_time)(_state)
+        return (
+            None,
+            dataclasses.replace(
+                _state,
+                timer_state=TimerState.STOPPED,
+                elapsed_time=0,
+                execute_read_input_command=True,
+            ),
+        )
+
+    return StateMonad.get().then(lambda _: StateMonad(_handle_middle_click))
