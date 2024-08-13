@@ -8,6 +8,7 @@ import colors
 import exceptions
 from monads import StateMonad
 import time_format
+import input_parser
 
 
 @enum.unique
@@ -240,31 +241,32 @@ def handle_scroll_down() -> StateMonad[State]:
 
 def handle_middle_click() -> StateMonad[State]:
     def _handle_middle_click(state: State) -> tuple[Any, State]:
-        if state.button != Button.MIDDLE:
+        if state.button != Button.MIDDLE or not state.read_input_command:
             return (None, state)
-
-        _state = state
-        if state.read_input_command:
-            input = subprocess.check_output(
-                state.read_input_command, shell=True, encoding="utf-8"
-            )
-            if "=" in input:
-                key, value = input.split("=", 1)
-                if key == "timer":
-                    return (None, dataclasses.replace(_state, timer=value))
-                else:
-                    exceptions.BadValue(f"{key} is not a modifiable property")
-            else:
-                new_start_time = state.time_format.text_to_seconds(input)
-                _, _state = update_start_time(new_start_time)(_state)
-        return (
-            None,
-            dataclasses.replace(
-                _state,
-                timer_state=TimerState.STOPPED,
-                elapsed_time=0,
-                execute_read_input_command=True,
-            ),
+        input = subprocess.check_output(
+            state.read_input_command, shell=True, encoding="utf-8"
         )
+        input_type, args = input_parser.parse_input(input)
+        match input_type:
+            case input_parser.InputType.TIME_SET:
+                return (
+                    None,
+                    dataclasses.replace(state, start_time=args[0], elapsed_time=0),
+                )
+            case input_parser.InputType.TIME_ADDITION:
+                return (
+                    None,
+                    dataclasses.replace(state, start_time=max(state.start_time + args[0], 0)),
+                )
+            case input_parser.InputType.TIME_REDUCTION:
+                return (
+                    None,
+                    dataclasses.replace(state, start_time=max(state.start_time - args[0], 0)),
+                )
+            case input_parser.InputType.RENAME_TIMER:
+                return (None, dataclasses.replace(state, timer=args[0]))
+            case input_parser.InputType.VOID:
+                return (None, state)
+        raise exceptions.BadValue(f"unrecognized input {input}")
 
     return StateMonad.get().then(lambda _: StateMonad(_handle_middle_click))
