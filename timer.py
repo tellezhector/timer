@@ -33,20 +33,21 @@ def build_output(init_state: state_lib.State):
 
 
 if __name__ == "__main__":
+    log_file = os.getenv("log_file")
+    if log_file:
+        logging.basicConfig(
+            filename=log_file,
+            encoding="utf-8",
+            level=logging.DEBUG,
+            format="{asctime} {name} {levelname:8s} {message}",
+            style="{",
+        )
+    init_state = state_lib.load_state(os.environ)
+
     try:
-        log_file = os.getenv("log_file")
-        if log_file:
-            logging.basicConfig(
-                filename=log_file,
-                encoding="utf-8",
-                level=logging.DEBUG,
-                format="{asctime} {name} {levelname:8s} {message}",
-                style="{",
-            )
-        init_state = state_lib.load_state(os.environ)
         final_state = build_output(init_state)
         logging.debug(final_state.serializable())
-        print(json.dumps(final_state.serializable()))
+        print(json.dumps(final_state.serializable()), flush=True)
     except Exception as e:
         logging.exception(e)
         full_text = str(e)
@@ -61,4 +62,4 @@ if __name__ == "__main__":
             "color": "#FFFFFF",
         }
         logging.error(error_log)
-        print(json.dumps(error_log))
+        print(json.dumps(error_log), flush=True)
