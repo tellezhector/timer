@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import datetime
 import json
 import os
 import subprocess
@@ -42,8 +43,7 @@ if __name__ == "__main__":
             format="{asctime} {name} {levelname:8s} {message}",
             style="{",
         )
-    init_state = state_lib.load_state(os.environ)
-
+    init_state = state_lib.load_state(os.environ, datetime.datetime.now(tz=datetime.timezone.utc).timestamp())
     try:
         final_state = build_output(init_state)
         logging.debug(final_state.serializable())

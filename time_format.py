@@ -9,11 +9,11 @@ class TimeFormat(enum.Enum):
     PRETTY = "pretty"
     CLOCK = "clock"
 
-    def seconds_to_text(self, seconds) -> str:
+    def seconds_to_text(self, seconds: float) -> str:
         if self == TimeFormat.PRETTY:
-            return seconds_to_pretty_time(seconds)
+            return seconds_to_pretty_time(int(seconds))
         if self == TimeFormat.CLOCK:
-            return seconds_to_clock_format(seconds)
+            return seconds_to_clock_format(int(seconds))
 
 
 def seconds_to_clock_format(secs: int) -> str:

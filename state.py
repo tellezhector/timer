@@ -40,6 +40,20 @@ def get_int(mapping: Mapping[str, str], key: str, default: int) -> int:
         return int(res)
     raise exceptions.BadInteger(f'{key}="{res}" not an int')
 
+def get_float(mapping: Mapping[str, str], key: str, default: float) -> float:
+    res = mapping.get(key)
+    if res is None:
+        return default
+    try:
+        return float(res)
+    except TypeError:
+      raise exceptions.BadFloat(f'{key}="{res}" not an int')
+
+def get_float_or_none(mapping: Mapping[str, str], key: str) -> float | None:
+    if key in mapping:
+        return float(mapping.get(key))
+    return None
+
 
 def get_enum(
     mapping: Mapping[str, str], key: str, default: enum.Enum | None
@@ -61,6 +75,8 @@ class State:
     timer: str
     start_time: int
     increments: int
+    old_timestamp: float | None
+    new_timestamp: float
     button: Button
     color_option: colors.ColorOption
     time_format: time_format.TimeFormat
@@ -74,14 +90,12 @@ class State:
     # internal control - not modifiable through configuration
     elapsed_time: float
     timer_state: TimerState
-    execute_read_input_command: bool = False
     execute_alert_command: bool = False
 
     def reset_transient_state(self) -> "State":
         return dataclasses.replace(
             self,
             button=Button.NONE,
-            execute_read_input_command=False,
             execute_alert_command=False,
         )
 
@@ -125,17 +139,22 @@ class State:
             "full_text": self.full_text,
             "label": self.label,
             "start_time": self.start_time,
-            "elapsed_time": self.elapsed_time,
+            "elapsed_time": str(self.elapsed_time),
+            # This is on purpse, the new timestamp will become
+            # the new old.
+            "old_timestamp": str(self.new_timestamp),
             "timer_state": self.timer_state.value,
             "timer": self.timer,
         }
 
 
-def load_state(map_: Mapping) -> State:
+def load_state(map_: Mapping, now: float) -> State:
     return State(
         timer=map_.get("timer", "timer"),
         start_time=get_int(map_, "start_time", 300),
-        elapsed_time=get_int(map_, "elapsed_time", 0),
+        elapsed_time=get_float(map_, "elapsed_time", 0.0),
+        old_timestamp=get_float_or_none(map_, "old_timestamp"),
+        new_timestamp=now,
         increments=get_int(map_, "increments", 60),
         timer_state=get_enum(map_, "timer_state", TimerState.STOPPED),
         button=get_enum(map_, "button", Button.NONE),
@@ -154,7 +173,10 @@ def increase_elapsed_time_if_running(
     increment: float,
 ) -> Callable[[State], StateMonad[State]]:
     def _increase_elapsed_time(state: State) -> tuple[Any, State]:
-        if state.timer_state == TimerState.RUNNING:
+        if state.timer_state == TimerState.RUNNING and state.old_timestamp:
+            # this delta should replace "increment", but at the moment
+            # we can't until we move to "persistent" interval.
+            # delta = state.new_timestamp - state.old_timestamp
             new_elapsed_time = state.elapsed_time + increment
             execute_alert_command = (
                 state.elapsed_time < state.start_time
