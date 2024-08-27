@@ -1,14 +1,12 @@
 from collections.abc import Mapping
 import dataclasses
 import enum
-import subprocess
-from typing import Any, Callable
+from typing import Any
+import logging
 
 import colors
 import exceptions
-from monads import StateMonad
 import time_format
-import input_parser
 
 
 @enum.unique
@@ -40,6 +38,7 @@ def get_int(mapping: Mapping[str, str], key: str, default: int) -> int:
         return int(res)
     raise exceptions.BadInteger(f'{key}="{res}" not an int')
 
+
 def get_float(mapping: Mapping[str, str], key: str, default: float) -> float:
     res = mapping.get(key)
     if res is None:
@@ -47,7 +46,8 @@ def get_float(mapping: Mapping[str, str], key: str, default: float) -> float:
     try:
         return float(res)
     except TypeError:
-      raise exceptions.BadFloat(f'{key}="{res}" not an int')
+        raise exceptions.BadFloat(f'{key}="{res}" not an int')
+
 
 def get_float_or_none(mapping: Mapping[str, str], key: str) -> float | None:
     if key in mapping:
@@ -91,13 +91,17 @@ class State:
     elapsed_time: float
     timer_state: TimerState
     execute_alert_command: bool = False
+    error_message: str | None = None
+    short_error_message: str | None = None
+    error_duration: float | None = None
 
     def reset_transient_state(self) -> "State":
-        return dataclasses.replace(
+        res = dataclasses.replace(
             self,
             button=Button.NONE,
             execute_alert_command=False,
         )
+        return res
 
     @property
     def label(self) -> str:
@@ -135,21 +139,38 @@ class State:
         return text
 
     def serializable(self) -> dict[str, Any]:
-        return {
+        res = {
             "full_text": self.full_text,
+            "short_text": self.full_text,
             "label": self.label,
             "start_time": self.start_time,
             "elapsed_time": str(self.elapsed_time),
             # This is on purpse, the new timestamp will become
-            # the new old.
+            # the new old timestamp
             "old_timestamp": str(self.new_timestamp),
             "timer_state": self.timer_state.value,
             "timer": self.timer,
         }
 
+        if (
+            self.error_duration is not None
+        ):
+            res.update(
+                {
+                    "full_text": f'{self.error_message}({self.error_duration:.1f})',
+                    "short_text": self.short_error_message,
+                    "color": '#ffffff',
+                    "background": '#ff0000',
+                    "error_message": self.error_message,
+                    "short_error_message": self.short_error_message,
+                    "error_duration": str(self.error_duration),
+                }
+            )
+        return res
+
 
 def load_state(map_: Mapping, now: float) -> State:
-    return State(
+    state = State(
         timer=map_.get("timer", "timer"),
         start_time=get_int(map_, "start_time", 300),
         elapsed_time=get_float(map_, "elapsed_time", 0.0),
@@ -166,129 +187,8 @@ def load_state(map_: Mapping, now: float) -> State:
         running_label=map_.get("running_label", "running:"),
         stopped_label=map_.get("stopped_label", "timer:"),
         paused_label=map_.get("paused_label", "paused:"),
+        error_message=map_.get("error_message"),
+        short_error_message=map_.get("short_error_message"),
+        error_duration=get_float_or_none(map_, "error_duration"),
     )
-
-
-def increase_elapsed_time_if_running(
-    increment: float,
-) -> Callable[[State], StateMonad[State]]:
-    def _increase_elapsed_time(state: State) -> tuple[Any, State]:
-        if state.timer_state == TimerState.RUNNING and state.old_timestamp:
-            # this delta should replace "increment", but at the moment
-            # we can't until we move to "persistent" interval.
-            # delta = state.new_timestamp - state.old_timestamp
-            new_elapsed_time = state.elapsed_time + increment
-            execute_alert_command = (
-                state.elapsed_time < state.start_time
-                and new_elapsed_time >= state.start_time
-            )
-            return (
-                None,
-                dataclasses.replace(
-                    state,
-                    elapsed_time=new_elapsed_time,
-                    execute_alert_command=execute_alert_command,
-                ),
-            )
-        return (None, state)
-
-    return StateMonad(_increase_elapsed_time)
-
-
-def update_start_time(new_start_time: int) -> Callable[[State], tuple[Any, State]]:
-    def _update_start_time(state: State) -> tuple[Any, State]:
-        return (None, dataclasses.replace(state, start_time=new_start_time))
-
-    return _update_start_time
-
-
-def handle_left_click() -> StateMonad[State]:
-    def _handle_left_click(state: State) -> tuple[Any, State]:
-        if state.button != Button.LEFT:
-            return (None, state)
-        if state.timer_state == TimerState.RUNNING:
-            return (
-                None,
-                dataclasses.replace(state, timer_state=TimerState.PAUSED),
-            )
-        return (
-            None,
-            dataclasses.replace(state, timer_state=TimerState.RUNNING),
-        )
-
-    return StateMonad.get().then(lambda _: StateMonad(_handle_left_click))
-
-
-def handle_right_click() -> StateMonad[State]:
-    def _handle_left_click(state: State) -> tuple[Any, State]:
-        if state.button != Button.RIGHT:
-            return (None, state)
-        return (
-            None,
-            dataclasses.replace(
-                state,
-                timer_state=TimerState.STOPPED,
-                elapsed_time=0,
-            ),
-        )
-
-    return StateMonad.get().then(lambda _: StateMonad(_handle_left_click))
-
-
-def handle_scroll_up() -> StateMonad[State]:
-    def _handle_scroll_up(state: State) -> tuple[Any, State]:
-        if state.button != Button.SCROLL_UP:
-            return (None, state)
-        return (
-            None,
-            dataclasses.replace(state, start_time=state.start_time + state.increments),
-        )
-
-    return StateMonad.get().then(lambda _: StateMonad(_handle_scroll_up))
-
-
-def handle_scroll_down() -> StateMonad[State]:
-    def _handle_scroll_down(state: State) -> tuple[Any, State]:
-        if state.button != Button.SCROLL_DOWN:
-            return (None, state)
-        return (
-            None,
-            dataclasses.replace(
-                state, start_time=max(state.start_time - state.increments, 0)
-            ),
-        )
-
-    return StateMonad.get().then(lambda _: StateMonad(_handle_scroll_down))
-
-
-def handle_middle_click() -> StateMonad[State]:
-    def _handle_middle_click(state: State) -> tuple[Any, State]:
-        if state.button != Button.MIDDLE or not state.read_input_command:
-            return (None, state)
-        input = subprocess.check_output(
-            state.read_input_command, shell=True, encoding="utf-8"
-        )
-        input_type, args = input_parser.parse_input(input)
-        match input_type:
-            case input_parser.InputType.TIME_SET:
-                return (
-                    None,
-                    dataclasses.replace(state, start_time=args[0], elapsed_time=0),
-                )
-            case input_parser.InputType.TIME_ADDITION:
-                return (
-                    None,
-                    dataclasses.replace(state, start_time=max(state.start_time + args[0], 0)),
-                )
-            case input_parser.InputType.TIME_REDUCTION:
-                return (
-                    None,
-                    dataclasses.replace(state, start_time=max(state.start_time - args[0], 0)),
-                )
-            case input_parser.InputType.RENAME_TIMER:
-                return (None, dataclasses.replace(state, timer=args[0]))
-            case input_parser.InputType.VOID:
-                return (None, state)
-        raise exceptions.BadValue(f"unrecognized input {input}")
-
-    return StateMonad.get().then(lambda _: StateMonad(_handle_middle_click))
+    return state
