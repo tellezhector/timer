@@ -41,3 +41,10 @@ def colorize(text: str) -> str:
         else:
             result += c
     return result
+
+def to_color_range(f: float):
+    x = int(f)
+    x = x % (510)
+    if x <= 255:
+        return x
+    return 510 - x
