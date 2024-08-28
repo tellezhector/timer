@@ -27,14 +27,50 @@ increments=60
 # (default: 300)
 start_time=300
 
+# An optional name for your timer.
+# (default: timer)
+timer_name=timer
+
+# Format string for your blocket's text.
+#
+# Placeholders are:
+# 
+# elapsed_time   (float, measured in seconds)
+# remaining_time (float, measured in seconds)
+# start_time     (integer, measured in seconds)
+# timer_name     (string)
+#
+# In addition to all regular f-string formats, there are two 
+# formatters for numeric values:
+#
+# - pretty:  5m, 10m30s,     3s,  8h4m3s
+# - clock: 5:00,  10:30,  00:03, 8:04:03
+#
+# Examples:
+# If you have a 5m timer named 'code review' and 30s have passed
+# {remaining_time:pretty}                     → 4m30s
+# {remaining_time:clock}                      → 4:30
+# {elapsed_time:clock}                        → 0:30
+# {elapsed_time:pretty}                       → 30s
+# {elapsed_time:.2f}                          → 30.00
+# {timer_name} {remaining_time:pretty}        → code review 4m30s
+# {timer_name:.6} {remaining_time:pretty}     → code r 4m30s
+# {remaining_time:pretty}/{start_time:pretty} → 4m30s/5m
+#
+# WARNING: You can use pango strings, but they won't work nice with 
+# the `color_options` `colorful` and `colorful_on_negatives`.
+#
+# (default: {remaining_time:pretty})
+text_format={remaining_time:pretty}/{start_time:pretty}
+
 # A command to execute when the timer runs out.
 #
-# The placeholder substrings `{start_time}` and `{timer}` will be replaced before executing
-# the command.
+# The command takes the same treatement as `text_format` so 
+# you can use placeholders
 # 
 # Keep in mind that the PATH that i3blocks uses may be different 
 # from the one in your terminal. I use: 
-# `/usr/bin/notify-send -c alarm -- "Timer is up!" "{timer} ({start_time}) timer is up!"`
+# `/usr/bin/notify-send -c alarm -- "Timer is up!" "{timer} ({start_time:pretty}) timer is up!"`
 # (deafult: None)
 alarm_command=/usr/bin/foo --bar biz
 
@@ -49,17 +85,12 @@ read_input_command=/usr/bin/foo --bar biz
 # - colorful
 # - colorful_on_negatives
 # - red_on_negatives
+#
+# WARNING: If your `text_format` uses pango strings `colorful` and `colorful_on_negatives` 
+# won't work nice.
+#
 # (default: never)
 colorize=red_on_negatives
-
-# Options for `time_format` are:
-# - pretty
-# - clock
-#
-# pretty:  5m, 10m30s, 3s,    8h4m3s
-# clock: 5:00, 10:30,  00:03, 8:04:03
-# (default: pretty)
-time_format=pretty
 
 # A font to apply to the blocket.
 # (default: None)

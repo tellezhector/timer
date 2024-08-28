@@ -1,19 +1,20 @@
-import enum
-import re
-
-import exceptions
+import string
 
 
-@enum.unique
-class TimeFormat(enum.Enum):
-    PRETTY = "pretty"
-    CLOCK = "clock"
+class Formatter(string.Formatter):
 
-    def seconds_to_text(self, seconds: float) -> str:
-        if self == TimeFormat.PRETTY:
-            return seconds_to_pretty_time(int(seconds))
-        if self == TimeFormat.CLOCK:
-            return seconds_to_clock_format(int(seconds))
+    def format_field(self, value, format_spec):
+        match format_spec:
+            case "pretty":
+                value = int(float(value))
+                return seconds_to_pretty_time(value)
+            case "clock":
+                value = int(float(value))
+                return seconds_to_clock_format(value)
+        return super().format_field(value, format_spec)
+
+
+FORMATTER = Formatter()
 
 
 def seconds_to_clock_format(secs: int) -> str:

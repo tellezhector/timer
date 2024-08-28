@@ -72,14 +72,14 @@ def get_enum(
 
 @dataclasses.dataclass(frozen=True)
 class State:
-    timer: str
+    text_format: str
+    timer_name: str
     start_time: int
     increments: int
     old_timestamp: float | None
     new_timestamp: float
     button: Button
     color_option: colors.ColorOption
-    time_format: time_format.TimeFormat
     font: str | None
     alarm_command: str | None
     read_input_command: str | None
@@ -114,23 +114,36 @@ class State:
                 return self.stopped_label
 
     def build_alarm_command(self) -> str:
-        return self.alarm_command.format(
-            start_time=self.time_format.seconds_to_text(self.start_time),
-            timer=self.timer,
-        )
+        return self.formatted(self.alarm_command)
 
-    @property
+    def build_read_input_command(self) -> str:
+        return self.formatted(self.read_input_command)
+
+    def formatted(self, text) -> str:
+        remaining_time = self.start_time - self.elapsed_time
+        try:
+            return time_format.FORMATTER.format(
+                text,
+                timer_name=self.timer_name,
+                start_time=self.start_time,
+                elapsed_time=self.elapsed_time,
+                remaining_time=remaining_time,
+            )
+        except KeyError as e:
+            raise exceptions.BadFormat(f"Bad key {e}")
+
     def full_text(self) -> str:
-        remaining = self.start_time - self.elapsed_time
-        text = self.time_format.seconds_to_text(remaining)
+        remaining_time = self.start_time - self.elapsed_time
+        text = self.formatted(self.text_format)
+
         match self.color_option:
             case colors.ColorOption.COLORFUL:
                 text = colors.colorize(text)
             case colors.ColorOption.RED_ON_NEGATIVES:
-                if remaining < 0:
+                if remaining_time < 0:
                     text = colors.red(text)
             case colors.ColorOption.COLORFUL_ON_NEGATIVES:
-                if remaining < 0:
+                if remaining_time < 0:
                     text = colors.colorize(text)
             case colors.ColorOption.NEVER:
                 pass
@@ -140,38 +153,44 @@ class State:
 
     def serializable(self) -> dict[str, Any]:
         res = {
-            "full_text": self.full_text,
-            "short_text": self.full_text,
             "label": self.label,
             "start_time": self.start_time,
             "elapsed_time": str(self.elapsed_time),
+            "timer_state": self.timer_state.value,
+            "timer_name": self.timer_name,
             # This is on purpse, the new timestamp will become
             # the new old timestamp
             "old_timestamp": str(self.new_timestamp),
-            "timer_state": self.timer_state.value,
-            "timer": self.timer,
         }
 
-        if (
-            self.error_duration is not None
-        ):
+        if self.error_duration is None:
+            full_text = self.full_text()
             res.update(
                 {
-                    "full_text": f'{self.error_message}({self.error_duration:.1f})',
+                    "full_text": full_text,
+                    "short_text": full_text,
+                }
+            )
+        else:
+            res.update(
+                {
+                    "full_text": f"{self.error_message}({self.error_duration:.1f})",
                     "short_text": self.short_error_message,
-                    "color": '#ffffff',
-                    "background": '#ff0000',
+                    "color": "#ffffff",
+                    "background": "#ff0000",
                     "error_message": self.error_message,
                     "short_error_message": self.short_error_message,
                     "error_duration": str(self.error_duration),
                 }
             )
+
         return res
 
 
 def load_state(map_: Mapping, now: float) -> State:
     state = State(
-        timer=map_.get("timer", "timer"),
+        text_format=map_.get("text_format", "{elapsed_time:clock}"),
+        timer_name=map_.get("timer_name", "timer"),
         start_time=get_int(map_, "start_time", 300),
         elapsed_time=get_float(map_, "elapsed_time", 0.0),
         old_timestamp=get_float_or_none(map_, "old_timestamp"),
@@ -180,7 +199,6 @@ def load_state(map_: Mapping, now: float) -> State:
         timer_state=get_enum(map_, "timer_state", TimerState.STOPPED),
         button=get_enum(map_, "button", Button.NONE),
         color_option=get_enum(map_, "colorize", colors.ColorOption.NEVER),
-        time_format=get_enum(map_, "time_format", time_format.TimeFormat.PRETTY),
         font=map_.get("font"),
         alarm_command=map_.get("alarm_command"),
         read_input_command=map_.get("read_input_command"),

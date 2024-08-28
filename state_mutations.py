@@ -34,17 +34,17 @@ def clicks_and_increments(init_state: state_lib.State):
     return state.reset_transient_state()
 
 
-def add_error(init_state: state_lib.State, e: Exception):
+def add_error(init_state: state_lib.State, e: Exception) -> state_lib.State:
     def _add_error(state: state_lib.State):
         full_text = str(e)
         short_text = str(e)[:40]
         # generic errors should be displayed for longer
-        duration=7
+        duration = 7
         if isinstance(e, exceptions.TimerException):
             full_text = getattr(e, "message")
             short_text = full_text[:40]
             # "known" errors can be displayed for shorter
-            duration=5
+            duration = 5
         return dataclasses.replace(
             state,
             error_message=full_text,
@@ -59,6 +59,7 @@ def add_error(init_state: state_lib.State, e: Exception):
     )
     return state
 
+
 def consume_error_time():
     def _consume_error_time(state: state_lib.State) -> tuple[Any, state_lib.State]:
         if state.error_duration is not None and state.old_timestamp is not None:
@@ -71,7 +72,7 @@ def consume_error_time():
                         state,
                         error_duration=new_error_time,
                     ),
-            )
+                )
             return (
                 None,
                 dataclasses.replace(
@@ -97,7 +98,11 @@ def increase_elapsed_time_if_running(
             # delta = state.new_timestamp - state.old_timestamp
             new_elapsed_time = state.elapsed_time + increment
             execute_alert_command = (
+                # before this step, elapsed time had still not
+                # reached state.start_time.
                 state.elapsed_time < state.start_time
+                # by the end of this step, the new elapsed time
+                # would have reached the start_time.
                 and new_elapsed_time >= state.start_time
             )
             return (
@@ -177,7 +182,7 @@ def handle_middle_click() -> StateMonad[state_lib.State]:
         if state.button != state_lib.Button.MIDDLE or not state.read_input_command:
             return (None, state)
         input = subprocess.check_output(
-            state.read_input_command, shell=True, encoding="utf-8"
+            state.build_read_input_command(), shell=True, encoding="utf-8"
         )
         input_type, args = input_parser.parse_input(input)
         match input_type:
@@ -201,7 +206,7 @@ def handle_middle_click() -> StateMonad[state_lib.State]:
                     ),
                 )
             case input_parser.InputType.RENAME_TIMER:
-                return (None, dataclasses.replace(state, timer=args[0]))
+                return (None, dataclasses.replace(state, timer_name=args[0]))
             case input_parser.InputType.VOID:
                 return (None, state)
         raise exceptions.BadValue(f"unrecognized input {input}")

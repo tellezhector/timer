@@ -22,9 +22,11 @@ if __name__ == "__main__":
     state = state_lib.load_state(os.environ, now)
     try:
         state = state_mutations.clicks_and_increments(state)
+        serialized = state.serializable()
     except Exception as e:
         logging.exception(e)
         state = state_mutations.add_error(state, e)
+        serialized = state.serializable()
     finally:
-        logging.debug(state.serializable())
-        print(json.dumps(state.serializable()), flush=True)
+        logging.debug(serialized)
+        print(json.dumps(serialized), flush=True)

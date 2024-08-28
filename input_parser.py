@@ -57,7 +57,7 @@ def parse_input(input: str) -> tuple[InputType, list[Any]]:
         return (InputType.VOID, [])
     if "=" in input:
         property, value = input.split("=", 1)
-        if property == "timer":
+        if property == "timer_name":
             return (InputType.RENAME_TIMER, [value])
     if input.startswith("+"):
         reduced = input[1:]
@@ -77,4 +77,4 @@ def parse_input(input: str) -> tuple[InputType, list[Any]]:
         return (InputType.TIME_SET, [pretty_time_to_seconds(input)])
     if input.isnumeric():
         return (InputType.TIME_SET, [int(input)])
-    raise exceptions.BadValue(f"invalid input {input}")
+    raise exceptions.BadValue(f"invalid input: {input}")
