@@ -158,6 +158,13 @@ class State:
             "elapsed_time": str(self.elapsed_time),
             "timer_state": self.timer_state.value,
             "timer_name": self.timer_name,
+            "text_format": self.text_format,
+            "font": self.font,
+            "alarm_command": self.alarm_command,
+            "read_input_command": self.read_input_command,
+            "running_label": self.running_label,
+            "stopped_label": self.stopped_label,
+            "paused_label": self.paused_label,
             # This is on purpse, the new timestamp will become
             # the new old timestamp
             "old_timestamp": str(self.new_timestamp),

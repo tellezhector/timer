@@ -14,7 +14,8 @@ class InputType(enum.Enum):
     TIME_SET = "time_set"
     TIME_ADDITION = "time_addition"
     TIME_REDUCTION = "time_reduction"
-    RENAME_TIMER = "rename_timer"
+    SET_PROPERTY = "set_property"
+    SET_COLOR_OPTION = "set_color_option"
     VOID = "void"
 
 
@@ -57,8 +58,19 @@ def parse_input(input: str) -> tuple[InputType, list[Any]]:
         return (InputType.VOID, [])
     if "=" in input:
         property, value = input.split("=", 1)
-        if property == "timer_name":
-            return (InputType.RENAME_TIMER, [value])
+        if property in (
+            "timer_name",
+            "text_format",
+            "font",
+            "alarm_command",
+            "read_input_command",
+            "running_label",
+            "stopped_label",
+            "paused_label",
+        ):
+            return (InputType.SET_PROPERTY, [property, value])
+        elif property == "color_option":
+            return (InputType.SET_COLOR_OPTION, [value])
     if input.startswith("+"):
         reduced = input[1:]
         time_type, time_in_secs = parse_input(reduced)

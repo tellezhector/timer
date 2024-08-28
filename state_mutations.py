@@ -3,10 +3,11 @@ import subprocess
 from typing import Any, Callable
 import logging
 
+import colors
 import exceptions
+import input_parser
 from monads import StateMonad
 import state as state_lib
-import input_parser
 
 
 def clicks_and_increments(init_state: state_lib.State):
@@ -186,6 +187,17 @@ def handle_middle_click() -> StateMonad[state_lib.State]:
         )
         input_type, args = input_parser.parse_input(input)
         match input_type:
+            case input_parser.InputType.SET_COLOR_OPTION:
+                return (
+                    None,
+                    dataclasses.replace(state, color_option=colors.ColorOption(arg[0])),
+                )            
+            case input_parser.InputType.SET_PROPERTY:
+                key, value = args
+                return (
+                    None,
+                    dataclasses.replace(state, **{ key: value}),
+                )
             case input_parser.InputType.TIME_SET:
                 return (
                     None,
