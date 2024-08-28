@@ -191,12 +191,12 @@ def handle_middle_click() -> StateMonad[state_lib.State]:
                 return (
                     None,
                     dataclasses.replace(state, color_option=colors.ColorOption(arg[0])),
-                )            
+                )
             case input_parser.InputType.SET_PROPERTY:
                 key, value = args
                 return (
                     None,
-                    dataclasses.replace(state, **{ key: value}),
+                    dataclasses.replace(state, **{key: value}),
                 )
             case input_parser.InputType.TIME_SET:
                 return (
