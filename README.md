@@ -70,13 +70,17 @@ text_format={remaining_time:pretty}/{start_time:pretty}
 # 
 # Keep in mind that the PATH that i3blocks uses may be different 
 # from the one in your terminal. I use: 
-# `/usr/bin/notify-send -c alarm -- "Timer is up!" "{timer} ({start_time:pretty}) timer is up!"`
+# `/usr/bin/notify-send -c alarm -- "Timer is up!" "{timer_name} ({start_time:pretty}) timer is up!"`
 # (deafult: None)
 alarm_command=/usr/bin/foo --bar biz
 
 # Any command that produces stdout from user input. I use
 # `/usr/bin/rofi -dmenu` for convenience but you can use something as simple
 # as printing the content of a file.
+#
+# This command also takes the same treatment as `text_format` and
+# `alarm_command` in regards of substituting placeholders.
+#
 # (default: None)
 read_input_command=/usr/bin/foo --bar biz
 
