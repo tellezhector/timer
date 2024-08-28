@@ -1,4 +1,5 @@
 import string
+import logging
 
 
 class Formatter(string.Formatter):
@@ -24,13 +25,13 @@ def seconds_to_clock_format(secs: int) -> str:
         secs = secs * -1
 
     if secs == 0:
-        return res + "0s"
+        return res + "00:00"
 
     hrs, secs = divmod(secs, 3600)
     mins, secs = divmod(secs, 60)
     if hrs:
         res += f"{hrs}:"
-    res += f"{mins}:{secs:02d}"
+    res += f"{mins:02d}:{secs:02d}"
     return res
 
 

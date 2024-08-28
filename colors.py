@@ -26,6 +26,18 @@ def red(text: str) -> str:
 
 def colorize(text: str) -> str:
     result = ""
+    pango_stack = 0
     for c in text:
-        result += f"<span color='{random.choice(COLORS)}'>{c}</span>"
+        if c == "<":
+            pango_stack += 1
+            result += c
+            continue
+        if c == ">":
+            pango_stack -= 1
+            result += c
+            continue
+        if pango_stack == 0:
+            result += f"<span color='{random.choice(COLORS)}'>{c}</span>"
+        else:
+            result += c
     return result

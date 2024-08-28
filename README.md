@@ -50,15 +50,12 @@ timer_name=timer
 # If you have a 5m timer named 'code review' and 30s have passed
 # {remaining_time:pretty}                     → 4m30s
 # {remaining_time:clock}                      → 4:30
-# {elapsed_time:clock}                        → 0:30
+# {elapsed_time:clock}                        → 00:30
 # {elapsed_time:pretty}                       → 30s
 # {elapsed_time:.2f}                          → 30.00
 # {timer_name} {remaining_time:pretty}        → code review 4m30s
 # {timer_name:.6} {remaining_time:pretty}     → code r 4m30s
 # {remaining_time:pretty}/{start_time:pretty} → 4m30s/5m
-#
-# WARNING: You can use pango strings, but they won't work nice with 
-# the `color_options` `colorful` and `colorful_on_negatives`.
 #
 # (default: {remaining_time:pretty})
 text_format={remaining_time:pretty}/{start_time:pretty}
@@ -89,9 +86,6 @@ read_input_command=/usr/bin/foo --bar biz
 # - colorful
 # - colorful_on_negatives
 # - red_on_negatives
-#
-# WARNING: If your `text_format` uses pango strings `colorful` and `colorful_on_negatives` 
-# won't work nice.
 #
 # (default: never)
 colorize=red_on_negatives
