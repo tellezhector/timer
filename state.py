@@ -2,6 +2,7 @@ from collections.abc import Mapping
 import dataclasses
 import enum
 from typing import Any
+import datetime
 import logging
 
 import colors
@@ -25,6 +26,8 @@ class TimerState(enum.Enum):
     RUNNING = "running"
     PAUSED = "paused"
 
+def now():
+    return datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
 
 def set_font(text: str, font: str) -> str:
     return f"<span font_family='{font}'>{text}</span>"

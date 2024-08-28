@@ -71,6 +71,7 @@ def parse_input(input: str) -> tuple[InputType, list[Any]]:
             return (InputType.SET_PROPERTY, [property, value])
         elif property == "color_option":
             return (InputType.SET_COLOR_OPTION, [value])
+        raise exceptions.BadPropertyPattern(f"unknown property: {property}")
     if input.startswith("+"):
         reduced = input[1:]
         time_type, time_in_secs = parse_input(reduced)

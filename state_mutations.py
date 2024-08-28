@@ -35,7 +35,7 @@ def clicks_and_increments(init_state: state_lib.State):
     return state.reset_transient_state()
 
 
-def add_error(init_state: state_lib.State, e: Exception) -> state_lib.State:
+def add_error(init_state: state_lib.State, e: Exception, now: float) -> state_lib.State:
     def _add_error(state: state_lib.State):
         full_text = str(e)
         short_text = str(e)[:40]
@@ -51,6 +51,7 @@ def add_error(init_state: state_lib.State, e: Exception) -> state_lib.State:
             error_message=full_text,
             short_error_message=short_text,
             error_duration=duration,
+            new_timestamp=now,
         )
 
     _, state = (

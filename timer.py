@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import datetime
 import json
 import os
 import logging
@@ -18,14 +17,16 @@ if __name__ == "__main__":
             format="{asctime} {name} {levelname:8s} {message}",
             style="{",
         )
-    now = datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
-    state = state_lib.load_state(os.environ, now)
+    state = state_lib.load_state(os.environ, state_lib.now())
     try:
         state = state_mutations.clicks_and_increments(state)
         serialized = state.serializable()
     except Exception as e:
         logging.exception(e)
-        state = state_mutations.add_error(state, e)
+        # Since some I/O errors take longer to be generated, 
+        # refreshing the timestamp is necessary to avoid time-skips or
+        # error messages shown for too little.
+        state = state_mutations.add_error(state, e, state_lib.now())
         serialized = state.serializable()
     finally:
         logging.debug(serialized)
