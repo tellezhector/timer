@@ -26,8 +26,10 @@ class TimerState(enum.Enum):
     RUNNING = "running"
     PAUSED = "paused"
 
+
 def now():
     return datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+
 
 def set_font(text: str, font: str) -> str:
     return f"<span font_family='{font}'>{text}</span>"
@@ -79,8 +81,6 @@ class State:
     timer_name: str
     start_time: int
     increments: int
-    old_timestamp: float | None
-    new_timestamp: float
     button: Button
     color_option: colors.ColorOption
     font: str | None
@@ -93,6 +93,8 @@ class State:
     # internal control - not modifiable through configuration
     elapsed_time: float
     timer_state: TimerState
+    old_timestamp: float | None
+    new_timestamp: float | None = None
     execute_alert_command: bool = False
     error_message: str | None = None
     short_error_message: str | None = None
@@ -170,10 +172,16 @@ class State:
             "running_label": self.running_label,
             "stopped_label": self.stopped_label,
             "paused_label": self.paused_label,
-            # This is on purpse, the new timestamp will become
-            # the new old timestamp
-            "old_timestamp": str(self.new_timestamp),
         }
+
+        if self.new_timestamp is not None:
+            res.update(
+                {
+                    # This is on purpse, the new timestamp will become
+                    # the new old timestamp
+                    "old_timestamp": str(self.new_timestamp),
+                }
+            )
 
         if self.error_duration is None:
             full_text = self.full_text()
@@ -201,7 +209,7 @@ class State:
 
 def load_state(map_: Mapping, now: float) -> State:
     state = State(
-        text_format=map_.get("text_format", "{elapsed_time:clock}"),
+        text_format=map_.get("text_format", "{remaining_time:pretty}"),
         timer_name=map_.get("timer_name", "timer"),
         start_time=get_int(map_, "start_time", 300),
         elapsed_time=get_float(map_, "elapsed_time", 0.0),

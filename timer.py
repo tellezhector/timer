@@ -19,7 +19,10 @@ if __name__ == "__main__":
         )
     state = state_lib.load_state(os.environ, state_lib.now())
     try:
-        state = state_mutations.clicks_and_increments(state)
+        if state.button != state_lib.Button.NONE:
+          state = state_mutations.handle_clicks(state)
+        else:
+          state = state_mutations.handle_increments(state)
         serialized = state.serializable()
     except Exception as e:
         logging.exception(e)

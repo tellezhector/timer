@@ -10,19 +10,24 @@ from monads import StateMonad
 import state as state_lib
 
 
-def clicks_and_increments(init_state: state_lib.State):
-
+def handle_clicks(init_state: state_lib.State) -> state_lib.State:
     _, state = (
-        handle_middle_click()
+        StateMonad.get()
+        .then(lambda _: handle_middle_click())
         .then(lambda _: handle_right_click())
         .then(lambda _: handle_left_click())
         .then(lambda _: handle_scroll_down())
         .then(lambda _: handle_scroll_up())
         .then(lambda _: consume_error_time())
-        .then(
-            # TODO: do not assume that increment is of size 1
-            lambda _: increase_elapsed_time_if_running(1)
-        )
+    ).run(init_state)
+
+    return state.reset_transient_state()
+
+
+def handle_increments(init_state: state_lib.State) -> state_lib.State:
+    _, state = (
+        StateMonad.get()
+        .then(lambda _: increase_elapsed_time_if_running())
         .run(init_state)
     )
 
@@ -90,15 +95,15 @@ def consume_error_time():
     return StateMonad(_consume_error_time)
 
 
-def increase_elapsed_time_if_running(
-    increment: float,
-) -> Callable[[state_lib.State], StateMonad[state_lib.State]]:
-    def _increase_elapsed_time(state: state_lib.State) -> tuple[Any, state_lib.State]:
+def increase_elapsed_time_if_running() -> (
+    Callable[[state_lib.State], StateMonad[state_lib.State]]
+):
+    def _increase_elapsed_time(state: state_lib.State) -> state_lib.State:
         if state.timer_state == state_lib.TimerState.RUNNING and state.old_timestamp:
             # this delta should replace "increment", but at the moment
             # we can't until we move to "persistent" interval.
-            # delta = state.new_timestamp - state.old_timestamp
-            new_elapsed_time = state.elapsed_time + increment
+            delta = state.new_timestamp - state.old_timestamp
+            new_elapsed_time = state.elapsed_time + delta
             execute_alert_command = (
                 # before this step, elapsed time had still not
                 # reached state.start_time.
@@ -107,17 +112,15 @@ def increase_elapsed_time_if_running(
                 # would have reached the start_time.
                 and new_elapsed_time >= state.start_time
             )
-            return (
-                None,
-                dataclasses.replace(
-                    state,
-                    elapsed_time=new_elapsed_time,
-                    execute_alert_command=execute_alert_command,
-                ),
+            return dataclasses.replace(
+                state,
+                elapsed_time=new_elapsed_time,
+                execute_alert_command=execute_alert_command,
             )
-        return (None, state)
 
-    return StateMonad(_increase_elapsed_time)
+        return state
+
+    return StateMonad.modify(_increase_elapsed_time)
 
 
 def handle_left_click() -> StateMonad[state_lib.State]:
@@ -134,7 +137,7 @@ def handle_left_click() -> StateMonad[state_lib.State]:
             dataclasses.replace(state, timer_state=state_lib.TimerState.RUNNING),
         )
 
-    return StateMonad.get().then(lambda _: StateMonad(_handle_left_click))
+    return StateMonad(_handle_left_click)
 
 
 def handle_right_click() -> StateMonad[state_lib.State]:
@@ -150,7 +153,7 @@ def handle_right_click() -> StateMonad[state_lib.State]:
             ),
         )
 
-    return StateMonad.get().then(lambda _: StateMonad(_handle_left_click))
+    return StateMonad(_handle_left_click)
 
 
 def handle_scroll_up() -> StateMonad[state_lib.State]:
@@ -162,7 +165,7 @@ def handle_scroll_up() -> StateMonad[state_lib.State]:
             dataclasses.replace(state, start_time=state.start_time + state.increments),
         )
 
-    return StateMonad.get().then(lambda _: StateMonad(_handle_scroll_up))
+    return StateMonad(_handle_scroll_up)
 
 
 def handle_scroll_down() -> StateMonad[state_lib.State]:
@@ -176,7 +179,7 @@ def handle_scroll_down() -> StateMonad[state_lib.State]:
             ),
         )
 
-    return StateMonad.get().then(lambda _: StateMonad(_handle_scroll_down))
+    return StateMonad(_handle_scroll_down)
 
 
 def handle_middle_click() -> StateMonad[state_lib.State]:
@@ -236,4 +239,4 @@ def handle_middle_click() -> StateMonad[state_lib.State]:
                 return (None, state)
         raise exceptions.BadValue(f"unrecognized input {input}")
 
-    return StateMonad.get().then(lambda _: StateMonad(_handle_middle_click))
+    return StateMonad(_handle_middle_click)
