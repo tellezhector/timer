@@ -66,7 +66,7 @@ def add_error(init_state: state_lib.State, e: Exception, now: float) -> state_li
     return state
 
 
-def consume_error_time():
+def consume_error_time() -> StateMonad[state_lib.State]:
     def _consume_error_time(state: state_lib.State) -> tuple[Any, state_lib.State]:
         if state.error_duration is not None and state.old_timestamp is not None:
             delta = state.new_timestamp - state.old_timestamp
@@ -115,7 +115,7 @@ def increase_elapsed_time_if_running() -> StateMonad[state_lib.State]:
 
 
 def handle_left_click() -> StateMonad[state_lib.State]:
-    def _handle_left_click(state: state_lib.State) -> tuple[Any, state_lib.State]:
+    def _handle_left_click(state: state_lib.State) -> state_lib.State:
         if state.button != state_lib.Button.LEFT:
             return state
         if state.timer_state == state_lib.TimerState.RUNNING:
