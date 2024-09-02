@@ -171,9 +171,7 @@ def handle_middle_click() -> StateMonad[state_lib.State]:
         input_type, args = input_parser.parse_input(input)
         match input_type:
             case input_parser.InputType.SET_COLOR_OPTION:
-                return dataclasses.replace(
-                    state, color_option=colors.ColorOption(args[0])
-                )
+                return dataclasses.replace(state, color_option=args[0])
             case input_parser.InputType.SET_GENERIC_FREE_TEXT_PROPERTY:
                 key, value = args
                 return dataclasses.replace(state, **{key: value})

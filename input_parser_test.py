@@ -1,0 +1,131 @@
+import unittest
+
+import input_parser
+import colors
+import exceptions
+
+class InputParserTest(unittest.TestCase):
+    def test_time_addition_pretty_format(self):
+        input_type, [seconds] = input_parser.parse_input('+3m')
+
+        self.assertEquals(input_parser.InputType.TIME_ADDITION, input_type)
+        self.assertEquals(180, seconds)
+
+    def test_time_addition_clock_format(self):
+        input_type, [seconds] = input_parser.parse_input('+3:00')
+
+        self.assertEquals(input_parser.InputType.TIME_ADDITION, input_type)
+        self.assertEquals(180, seconds)
+
+    def test_time_addition_naked_format(self):
+        input_type, [seconds] = input_parser.parse_input('+180')
+
+        self.assertEquals(input_parser.InputType.TIME_ADDITION, input_type)
+        self.assertEquals(180, seconds)
+
+    def test_time_reduction_pretty_format(self):
+        input_type, [seconds] = input_parser.parse_input('-3m')
+
+        self.assertEquals(input_parser.InputType.TIME_REDUCTION, input_type)
+        self.assertEquals(180, seconds)
+
+    def test_time_reduction_clock_format(self):
+        input_type, [seconds] = input_parser.parse_input('-3:00')
+
+        self.assertEquals(input_parser.InputType.TIME_REDUCTION, input_type)
+        self.assertEquals(180, seconds)
+
+    def test_time_reduction_naked_format(self):
+        input_type, [seconds] = input_parser.parse_input('-180')
+
+        self.assertEquals(input_parser.InputType.TIME_REDUCTION, input_type)
+        self.assertEquals(180, seconds)
+
+    def test_set_time_pretty_format(self):
+        input_type, [seconds] = input_parser.parse_input('5m')
+
+        self.assertEquals(input_parser.InputType.TIME_SET, input_type)
+        self.assertEquals(300, seconds)
+
+    def test_set_time_clock_format(self):
+        input_type, [seconds] = input_parser.parse_input('5:00')
+
+        self.assertEquals(input_parser.InputType.TIME_SET, input_type)
+        self.assertEquals(300, seconds)
+
+    def test_set_time_naked_format(self):
+        input_type, [seconds] = input_parser.parse_input('300')
+
+        self.assertEquals(input_parser.InputType.TIME_SET, input_type)
+        self.assertEquals(300, seconds)
+
+    def test_set_color_option(self):
+        input_type, [color] = input_parser.parse_input('color_option=red_on_negatives')
+
+        self.assertEquals(input_parser.InputType.SET_COLOR_OPTION, input_type)
+        self.assertEquals(colors.ColorOption.RED_ON_NEGATIVES, color)
+
+    def test_set_timer_name(self):
+        input_type, [property, value] = input_parser.parse_input('timer_name=whatever')
+
+        self.assertEquals(input_parser.InputType.SET_GENERIC_FREE_TEXT_PROPERTY, input_type)
+        self.assertEquals('timer_name', property)
+        self.assertEquals('whatever', value)
+
+    def test_set_font(self):
+        input_type, [property, value] = input_parser.parse_input('font=whatever')
+
+        self.assertEquals(input_parser.InputType.SET_GENERIC_FREE_TEXT_PROPERTY, input_type)
+        self.assertEquals('font', property)
+        self.assertEquals('whatever', value)
+
+    def test_set_alarm_command(self):
+        input_type, [property, value] = input_parser.parse_input('alarm_command=whatever')
+
+        self.assertEquals(input_parser.InputType.SET_GENERIC_FREE_TEXT_PROPERTY, input_type)
+        self.assertEquals('alarm_command', property)
+        self.assertEquals('whatever', value)
+
+    def test_set_read_input_command(self):
+        input_type, [property, value] = input_parser.parse_input('read_input_command=whatever')
+
+        self.assertEquals(input_parser.InputType.SET_GENERIC_FREE_TEXT_PROPERTY, input_type)
+        self.assertEquals('read_input_command', property)
+        self.assertEquals('whatever', value)
+
+    def test_set_running_label(self):
+        input_type, [property, value] = input_parser.parse_input('running_label=whatever')
+
+        self.assertEquals(input_parser.InputType.SET_GENERIC_FREE_TEXT_PROPERTY, input_type)
+        self.assertEquals('running_label', property)
+        self.assertEquals('whatever', value)
+
+    def test_set_stopped_label(self):
+        input_type, [property, value] = input_parser.parse_input('stopped_label=whatever')
+
+        self.assertEquals(input_parser.InputType.SET_GENERIC_FREE_TEXT_PROPERTY, input_type)
+        self.assertEquals('stopped_label', property)
+        self.assertEquals('whatever', value)
+
+    def test_set_paused_label(self):
+        input_type, [property, value] = input_parser.parse_input('paused_label=whatever')
+
+        self.assertEquals(input_parser.InputType.SET_GENERIC_FREE_TEXT_PROPERTY, input_type)
+        self.assertEquals('paused_label', property)
+        self.assertEquals('whatever', value)
+
+    def test_unknown_property(self):
+
+        with self.assertRaisesRegex(exceptions.BadPropertyPattern, 'unknown property'): 
+            input_parser.parse_input('something_non_existent=¯\_(ツ)_/¯')
+    
+    def test_bad_input(self):
+        with self.assertRaisesRegex(exceptions.BadValue, 'invalid input'): 
+            input_parser.parse_input('¯\_(ツ)_/¯')
+
+    
+
+
+
+if __name__ == '__main__':
+    unittest.main()
