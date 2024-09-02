@@ -14,7 +14,8 @@ class InputType(enum.Enum):
     TIME_SET = "time_set"
     TIME_ADDITION = "time_addition"
     TIME_REDUCTION = "time_reduction"
-    SET_PROPERTY = "set_property"
+    SET_GENERIC_PROPERTY = "set_property"
+    SET_TEXT_FORMAT = "set_text_format"
     SET_COLOR_OPTION = "set_color_option"
     VOID = "void"
 
@@ -60,7 +61,6 @@ def parse_input(input: str) -> tuple[InputType, list[Any]]:
         property, value = input.split("=", 1)
         if property in (
             "timer_name",
-            "text_format",
             "font",
             "alarm_command",
             "read_input_command",
@@ -68,7 +68,9 @@ def parse_input(input: str) -> tuple[InputType, list[Any]]:
             "stopped_label",
             "paused_label",
         ):
-            return (InputType.SET_PROPERTY, [property, value])
+            return (InputType.SET_GENERIC_PROPERTY, [property, value])
+        elif property == "text_format":
+            return (InputType.SET_TEXT_FORMAT, [property, value])
         elif property == "color_option":
             return (InputType.SET_COLOR_OPTION, [value])
         raise exceptions.BadPropertyPattern(f"unknown property: {property}")

@@ -134,6 +134,8 @@ class State:
             )
         except KeyError as e:
             raise exceptions.BadFormat(f"Bad key {e}")
+        except SyntaxError as e:
+            raise exceptions.BadFormat(f"Bad syntax in {text}")
 
     def full_text(self) -> str:
         remaining_time = self.start_time - self.elapsed_time

@@ -193,11 +193,23 @@ def handle_middle_click() -> StateMonad[state_lib.State]:
                     None,
                     dataclasses.replace(state, color_option=colors.ColorOption(arg[0])),
                 )
-            case input_parser.InputType.SET_PROPERTY:
+            case input_parser.InputType.SET_GENERIC_PROPERTY:
                 key, value = args
                 return (
                     None,
                     dataclasses.replace(state, **{key: value}),
+                )
+            case input_parser.InputType.SET_TEXT_FORMAT:
+                _, new_text_format = args
+                try:
+                    # try the new format before committing a bad format change.
+                    state.formatted(new_text_format)
+                except Exception as e:
+                    logging.error(e)
+                    raise e
+                return (
+                    None,
+                    dataclasses.replace(state, text_format=new_text_format),
                 )
             case input_parser.InputType.TIME_SET:
                 return (
