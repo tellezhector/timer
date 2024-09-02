@@ -18,7 +18,6 @@ def handle_clicks(init_state: state_lib.State) -> state_lib.State:
         .then(lambda _: handle_left_click())
         .then(lambda _: handle_scroll_down())
         .then(lambda _: handle_scroll_up())
-        .then(lambda _: consume_error_time())
     ).run(init_state)
 
     return state.reset_transient_state()
@@ -28,6 +27,7 @@ def handle_increments(init_state: state_lib.State) -> state_lib.State:
     _, state = (
         StateMonad.get()
         .then(lambda _: increase_elapsed_time_if_running())
+        .then(lambda _: consume_error_time())
         .run(init_state)
     )
 
@@ -73,26 +73,17 @@ def consume_error_time():
             delta = state.new_timestamp - state.old_timestamp
             new_error_time = state.error_duration - delta
             if new_error_time > 0:
-                return (
-                    None,
-                    dataclasses.replace(
-                        state,
-                        error_duration=new_error_time,
-                    ),
-                )
-            return (
-                None,
-                dataclasses.replace(
-                    state,
-                    error_message=None,
-                    short_error_message=None,
-                    error_duration=None,
-                ),
+                return dataclasses.replace(state, error_duration=new_error_time)
+            return dataclasses.replace(
+                state,
+                error_message=None,
+                short_error_message=None,
+                error_duration=None,
             )
 
-        return (None, state)
+        return state
 
-    return StateMonad(_consume_error_time)
+    return StateMonad.modify(_consume_error_time)
 
 
 def increase_elapsed_time_if_running() -> (
@@ -126,82 +117,67 @@ def increase_elapsed_time_if_running() -> (
 def handle_left_click() -> StateMonad[state_lib.State]:
     def _handle_left_click(state: state_lib.State) -> tuple[Any, state_lib.State]:
         if state.button != state_lib.Button.LEFT:
-            return (None, state)
+            return state
         if state.timer_state == state_lib.TimerState.RUNNING:
-            return (
-                None,
-                dataclasses.replace(state, timer_state=state_lib.TimerState.PAUSED),
-            )
-        return (
-            None,
-            dataclasses.replace(state, timer_state=state_lib.TimerState.RUNNING),
-        )
+            return dataclasses.replace(state, timer_state=state_lib.TimerState.PAUSED)
 
-    return StateMonad(_handle_left_click)
+        return dataclasses.replace(state, timer_state=state_lib.TimerState.RUNNING)
+
+    return StateMonad.modify(_handle_left_click)
 
 
 def handle_right_click() -> StateMonad[state_lib.State]:
     def _handle_left_click(state: state_lib.State) -> tuple[Any, state_lib.State]:
         if state.button != state_lib.Button.RIGHT:
-            return (None, state)
-        return (
-            None,
-            dataclasses.replace(
-                state,
-                timer_state=state_lib.TimerState.STOPPED,
-                elapsed_time=0,
-            ),
+            return state
+        return dataclasses.replace(
+            state,
+            timer_state=state_lib.TimerState.STOPPED,
+            elapsed_time=0,
         )
 
-    return StateMonad(_handle_left_click)
+    return StateMonad.modify(_handle_left_click)
 
 
 def handle_scroll_up() -> StateMonad[state_lib.State]:
     def _handle_scroll_up(state: state_lib.State) -> tuple[Any, state_lib.State]:
         if state.button != state_lib.Button.SCROLL_UP:
-            return (None, state)
+            return state
         return (
-            None,
             dataclasses.replace(state, start_time=state.start_time + state.increments),
         )
 
-    return StateMonad(_handle_scroll_up)
+    return StateMonad.modify(_handle_scroll_up)
 
 
 def handle_scroll_down() -> StateMonad[state_lib.State]:
     def _handle_scroll_down(state: state_lib.State) -> tuple[Any, state_lib.State]:
         if state.button != state_lib.Button.SCROLL_DOWN:
-            return (None, state)
-        return (
-            None,
-            dataclasses.replace(
-                state, start_time=max(state.start_time - state.increments, 0)
-            ),
+            return state
+        return dataclasses.replace(
+            state, start_time=max(state.start_time - state.increments, 0)
         )
 
-    return StateMonad(_handle_scroll_down)
+    return StateMonad.modify(_handle_scroll_down)
 
 
 def handle_middle_click() -> StateMonad[state_lib.State]:
     def _handle_middle_click(state: state_lib.State) -> tuple[Any, state_lib.State]:
         if state.button != state_lib.Button.MIDDLE or not state.read_input_command:
-            return (None, state)
+            return state
         input = subprocess.check_output(
             state.build_read_input_command(), shell=True, encoding="utf-8"
         )
         input_type, args = input_parser.parse_input(input)
         match input_type:
             case input_parser.InputType.SET_COLOR_OPTION:
-                return (
-                    None,
-                    dataclasses.replace(state, color_option=colors.ColorOption(arg[0])),
+                return dataclasses.replace(
+                    state, color_option=colors.ColorOption(args[0])
                 )
-            case input_parser.InputType.SET_GENERIC_PROPERTY:
+            case input_parser.InputType.SET_GENERIC_FREE_TEXT_PROPERTY:
                 key, value = args
-                return (
-                    None,
-                    dataclasses.replace(state, **{key: value}),
-                )
+                return dataclasses.replace(state, **{key: value})
+
             case input_parser.InputType.SET_TEXT_FORMAT:
                 _, new_text_format = args
                 try:
@@ -210,33 +186,24 @@ def handle_middle_click() -> StateMonad[state_lib.State]:
                 except Exception as e:
                     logging.error(e)
                     raise e
-                return (
-                    None,
-                    dataclasses.replace(state, text_format=new_text_format),
-                )
+                return dataclasses.replace(state, text_format=new_text_format)
+
             case input_parser.InputType.TIME_SET:
-                return (
-                    None,
-                    dataclasses.replace(state, start_time=args[0], elapsed_time=0),
-                )
+                return dataclasses.replace(state, start_time=args[0], elapsed_time=0)
+
             case input_parser.InputType.TIME_ADDITION:
-                return (
-                    None,
-                    dataclasses.replace(
-                        state, start_time=max(state.start_time + args[0], 0)
-                    ),
+                return dataclasses.replace(
+                    state, start_time=max(state.start_time + args[0], 0)
                 )
+
             case input_parser.InputType.TIME_REDUCTION:
-                return (
-                    None,
-                    dataclasses.replace(
-                        state, start_time=max(state.start_time - args[0], 0)
-                    ),
+                return dataclasses.replace(
+                    state, start_time=max(state.start_time - args[0], 0)
                 )
             case input_parser.InputType.RENAME_TIMER:
-                return (None, dataclasses.replace(state, timer_name=args[0]))
+                return dataclasses.replace(state, timer_name=args[0])
             case input_parser.InputType.VOID:
-                return (None, state)
+                return state
         raise exceptions.BadValue(f"unrecognized input {input}")
 
-    return StateMonad(_handle_middle_click)
+    return StateMonad.modify(_handle_middle_click)
