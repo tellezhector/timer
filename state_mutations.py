@@ -85,11 +85,12 @@ def consume_error_time():
     return StateMonad.modify(_consume_error_time)
 
 
-def increase_elapsed_time_if_running() -> (
-    Callable[[state_lib.State], StateMonad[state_lib.State]]
-):
+def increase_elapsed_time_if_running() -> StateMonad[state_lib.State]:
     def _increase_elapsed_time(state: state_lib.State) -> state_lib.State:
-        if state.timer_state == state_lib.TimerState.RUNNING and state.old_timestamp:
+        if (
+            state.timer_state == state_lib.TimerState.RUNNING
+            and state.old_timestamp is not None
+        ):
             # this delta should replace "increment", but at the moment
             # we can't until we move to "persistent" interval.
             delta = state.new_timestamp - state.old_timestamp
@@ -142,8 +143,8 @@ def handle_scroll_up() -> StateMonad[state_lib.State]:
     def _handle_scroll_up(state: state_lib.State) -> tuple[Any, state_lib.State]:
         if state.button != state_lib.Button.SCROLL_UP:
             return state
-        return (
-            dataclasses.replace(state, start_time=state.start_time + state.increments),
+        return dataclasses.replace(
+            state, start_time=state.start_time + state.increments
         )
 
     return StateMonad.modify(_handle_scroll_up)

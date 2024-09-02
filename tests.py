@@ -1,0 +1,12 @@
+import unittest
+
+import input_parser_test
+
+if __name__ == '__main__':
+    loader = unittest.TestLoader()
+    runner = unittest.TextTestRunner(verbosity=1, 
+                                     warnings="always")
+    runner.run(loader.discover(
+        start_dir=".",
+        pattern="*test.py",
+        ))
