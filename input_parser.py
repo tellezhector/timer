@@ -71,7 +71,7 @@ def parse_input(input: str) -> tuple[InputType, list[Any]]:
         ):
             return (InputType.SET_GENERIC_FREE_TEXT_PROPERTY, [property, value])
         elif property == 'text_format':
-            return (InputType.SET_TEXT_FORMAT, [property, value])
+            return (InputType.SET_TEXT_FORMAT, [value])
         elif property == 'color_option':
             return (InputType.SET_COLOR_OPTION, [colors.ColorOption(value)])
         raise exceptions.BadPropertyPattern(f'unknown property: {property}')

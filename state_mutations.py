@@ -3,7 +3,6 @@ import subprocess
 from typing import Any, Callable
 import logging
 
-import colors
 import exceptions
 import input_parser
 from monads import StateMonad
@@ -177,7 +176,7 @@ def handle_middle_click() -> StateMonad[state_lib.State]:
                 return dataclasses.replace(state, **{key: value})
 
             case input_parser.InputType.SET_TEXT_FORMAT:
-                _, new_text_format = args
+                [new_text_format] = args
                 try:
                     # try the new format before committing a bad format change.
                     state.formatted(new_text_format)
