@@ -38,7 +38,7 @@ def get_int(mapping: Mapping[str, Any], key: str, default: int) -> int:
     try:
         return int(res)
     except (TypeError, ValueError):
-      raise exceptions.BadInteger(f"{key}='{res}' not an int")
+        raise exceptions.BadInteger(f"{key}='{res}' not an int")
 
 
 def get_float(mapping: Mapping[str, Any], key: str, default: float) -> float:
@@ -162,18 +162,11 @@ class State:
             'running_label': self.running_label,
             'stopped_label': self.stopped_label,
             'paused_label': self.paused_label,
+            'old_timestamp': str(self.old_timestamp),
         }
 
-        if self.new_timestamp is not None:
-            res.update(
-                {
-                    # This is on purpse, the new timestamp will become
-                    # the new old timestamp
-                    'old_timestamp': str(self.new_timestamp),
-                }
-            )
-
-        if self.error_duration is None:
+        display_error = self.error_duration is None
+        if display_error:
             full_text = self.full_text()
             res.update(
                 {

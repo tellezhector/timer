@@ -27,6 +27,7 @@ def handle_increments(init_state: state_lib.State) -> state_lib.State:
         StateMonad.get()
         .then(lambda _: increase_elapsed_time_if_running())
         .then(lambda _: consume_error_time())
+        .then(lambda _: move_new_timestamp_to_old_timestamp())
         .run(init_state)
     )
 
@@ -58,10 +59,7 @@ def add_error(init_state: state_lib.State, e: Exception, now: float) -> state_li
             new_timestamp=now,
         )
 
-    _, state = (
-        StateMonad.modify(_add_error)
-        .run(init_state)
-    )
+    _, state = StateMonad.modify(_add_error).run(init_state)
     return state
 
 
@@ -111,6 +109,17 @@ def increase_elapsed_time_if_running() -> StateMonad[state_lib.State]:
         return state
 
     return StateMonad.modify(_increase_elapsed_time)
+
+
+def move_new_timestamp_to_old_timestamp() -> StateMonad[state_lib.State]:
+    def _new_time_to_old_time(state: state_lib.State) -> state_lib.State:
+        if state.new_timestamp is not None:
+            return dataclasses.replace(
+                state, old_timestamp=state.new_timestamp, new_timestamp=None
+            )
+        return state
+
+    return StateMonad.modify(_new_time_to_old_time)
 
 
 def handle_left_click() -> StateMonad[state_lib.State]:
@@ -197,8 +206,6 @@ def handle_middle_click() -> StateMonad[state_lib.State]:
                 return dataclasses.replace(
                     state, start_time=max(state.start_time - args[0], 0)
                 )
-            case input_parser.InputType.RENAME_TIMER:
-                return dataclasses.replace(state, timer_name=args[0])
             case input_parser.InputType.VOID:
                 return state
         raise exceptions.BadValue(f'unrecognized input {input}')

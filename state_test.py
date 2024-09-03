@@ -61,13 +61,6 @@ class StateTest(unittest.TestCase):
         with self.assertRaises(exceptions.BadEnum):
             state.get_enum({'key': 'not_an_enum'}, 'key', TestEnum.NADA)
 
-    def test_new_timestamp_becomes_old_timestamp_on_serialization(self):
-        init = state.load_state(mapping={'old_timestamp': 1}, now=3)
-
-        serializable = init.serializable()
-
-        self.assertEqual('3', serializable['old_timestamp'])
-
 
 if __name__ == '__main__':
     unittest.main()

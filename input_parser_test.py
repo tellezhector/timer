@@ -122,6 +122,13 @@ class InputParserTest(unittest.TestCase):
         self.assertEqual('paused_label', key)
         self.assertEqual('whatever', value)
 
+    def test_empty_input(self):
+        input_type, [] = input_parser.parse_input('')
+
+        self.assertEqual(
+            input_parser.InputType.VOID, input_type
+        )
+
     def test_set_text_format(self):
         input_type, [value] = input_parser.parse_input('text_format={elapsed_time}')
 

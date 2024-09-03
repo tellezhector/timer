@@ -191,6 +191,12 @@ class StateMutationsTest(unittest.TestCase):
         self.assertEqual(5, later.error_duration)
         self.assertEqual(2, later.new_timestamp)
 
+    def test_new_timestamp_becomes_old_timestamp_on_serialization(self):
+        init = state.load_state(mapping={'old_timestamp': 1}, now=3)
+
+        _, later = state_mutations.move_new_timestamp_to_old_timestamp().run(init)
+
+        self.assertEqual(3, later.old_timestamp)
 
 if __name__ == '__main__':
     unittest.main()
