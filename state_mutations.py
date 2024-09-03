@@ -46,7 +46,7 @@ def add_error(init_state: state_lib.State, e: Exception, now: float) -> state_li
         # generic errors should be displayed for longer
         duration = 7
         if isinstance(e, exceptions.TimerException):
-            full_text = getattr(e, "message")
+            full_text = getattr(e, 'message')
             short_text = full_text[:40]
             # "known" errors can be displayed for shorter
             duration = 5
@@ -165,7 +165,7 @@ def handle_middle_click() -> StateMonad[state_lib.State]:
         if state.button != state_lib.Button.MIDDLE or not state.read_input_command:
             return state
         input = subprocess.check_output(
-            state.build_read_input_command(), shell=True, encoding="utf-8"
+            state.build_read_input_command(), shell=True, encoding='utf-8'
         )
         input_type, args = input_parser.parse_input(input)
         match input_type:
@@ -201,6 +201,6 @@ def handle_middle_click() -> StateMonad[state_lib.State]:
                 return dataclasses.replace(state, timer_name=args[0])
             case input_parser.InputType.VOID:
                 return state
-        raise exceptions.BadValue(f"unrecognized input {input}")
+        raise exceptions.BadValue(f'unrecognized input {input}')
 
     return StateMonad.modify(_handle_middle_click)
