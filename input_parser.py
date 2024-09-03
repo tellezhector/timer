@@ -62,7 +62,6 @@ def parse_input(input: str) -> tuple[InputType, list[Any]]:
         property, value = input.split('=', 1)
         if property in (
             'timer_name',
-            'font',
             'alarm_command',
             'read_input_command',
             'running_label',

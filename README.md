@@ -90,18 +90,13 @@ read_input_command=/usr/bin/foo --bar biz
 # (default: never)
 colorize=red_on_negatives
 
-# A font to apply to the blocket.
-# (default: None)
-font=Roboto
-
 # A path to write logs to. Useful for debugging.
 # (default: None)
 log_file=/tmp/timer_log.txt
 
-# Labels, labels are free text, in order to get out of the box support
-# dependency to fonts was removed, but you may want to install a font that
-# supports icon glyphs like fontawesome or nerdfonts and labels with symbols
-# like:
+# Labels are free text, but you may want to install a font that
+# supports icon glyphs like fontawesome or nerdfonts and labels 
+# with symbols like:
 #  * \uf04b (play icon)
 #  * \uf04c (pause icon)
 #  * \uf251 (hourglass-start icon)
@@ -112,6 +107,14 @@ running_label=foo
 paused_label=bar
 # (default: timer:)
 stopped_label=baz
+
+# This is inherited from i3blocks
+# see: https://github.com/vivien/i3blocks#i3bar-properties
+# which is in turn referenced from:
+# https://i3wm.org/docs/i3bar-protocol.html#_blocks_in_detail
+# options are 'none' or 'pango'.
+# (default: none)
+markup=pango
 ```
 
 ## How to use
@@ -121,5 +124,5 @@ stopped_label=baz
 |  left click   | Start / pause / resume. |
 |  scroll up    | Increment timer by `increment`. |
 |  scroll down  | Decrement timer by `increment`. |
-|  middle click | If defined, `read_input_command` is executed and its `stdout` is parsed.<br><br>The expected format is either `property=<new value>` or `[-+]<time>` where `<time>`'s format can be an integer, a string of the form 3h, 3h20m, 2700s, 1h30m30s or a string of the form 3:00:00, 3:20:00, 45:00, 1:30:30. <br><br>If just `<time>` is passed, the `start_time` is set to `time`;if `+<time>` is passed, `time` is added to the current `start_time`; if `-<time>` is passed, `time` is reduced from `start_time` (capped at 0).<br><br> For `property=<new value>`, the properties that can be overwritten are timer_name, text_format, font, alarm_command, read_input_command, running_label, stopped_label, paused_label, color_option.|
+|  middle click | If defined, `read_input_command` is executed and its `stdout` is parsed.<br><br>The expected format is either `property=<new value>` or `[-+]<time>` where `<time>`'s format can be an integer, a string of the form 3h, 3h20m, 2700s, 1h30m30s or a string of the form 3:00:00, 3:20:00, 45:00, 1:30:30. <br><br>If just `<time>` is passed, the `start_time` is set to `time`;if `+<time>` is passed, `time` is added to the current `start_time`; if `-<time>` is passed, `time` is reduced from `start_time` (capped at 0).<br><br> For `property=<new value>`, the properties that can be overwritten are `timer_name`, `text_format`, `alarm_command`, `read_input_command`, `running_label`, `stopped_label`, `paused_label`, `color_option`.|
 | right click | Resets the timer back to the last defined `start_time` (i.e. cancels the current timer). |

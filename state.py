@@ -31,10 +31,6 @@ def now():
     return datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
 
 
-def set_font(text: str, font: str) -> str:
-    return f"<span font_family='{font}'>{text}</span>"
-
-
 def get_int(mapping: Mapping[str, str], key: str, default: int) -> int:
     res = mapping.get(key)
     if res is None:
@@ -83,7 +79,6 @@ class State:
     increments: int
     button: Button
     color_option: colors.ColorOption
-    font: str | None
     alarm_command: str | None
     read_input_command: str | None
     running_label: str
@@ -154,8 +149,6 @@ class State:
                     text = colors.colorize(text)
             case colors.ColorOption.NEVER:
                 pass
-        if self.font is not None:
-            text = set_font(text, self.font)
         return text
 
     def serializable(self) -> dict[str, Any]:
@@ -166,7 +159,6 @@ class State:
             "timer_state": self.timer_state.value,
             "timer_name": self.timer_name,
             "text_format": self.text_format,
-            "font": self.font,
             "alarm_command": self.alarm_command,
             "read_input_command": self.read_input_command,
             "running_label": self.running_label,
@@ -219,7 +211,6 @@ def load_state(map_: Mapping, now: float) -> State:
         timer_state=get_enum(map_, "timer_state", TimerState.STOPPED),
         button=get_enum(map_, "button", Button.NONE),
         color_option=get_enum(map_, "colorize", colors.ColorOption.NEVER),
-        font=map_.get("font"),
         alarm_command=map_.get("alarm_command"),
         read_input_command=map_.get("read_input_command"),
         running_label=map_.get("running_label", "running:"),

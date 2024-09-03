@@ -72,13 +72,6 @@ class InputParserTest(unittest.TestCase):
         self.assertEqual('timer_name', key)
         self.assertEqual('whatever', value)
 
-    def test_set_font(self):
-        input_type, [key, value] = input_parser.parse_input('font=whatever')
-
-        self.assertEqual(input_parser.InputType.SET_GENERIC_FREE_TEXT_PROPERTY, input_type)
-        self.assertEqual('font', key)
-        self.assertEqual('whatever', value)
-
     def test_set_alarm_command(self):
         input_type, [key, value] = input_parser.parse_input('alarm_command=whatever')
 
