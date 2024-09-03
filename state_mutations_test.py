@@ -18,7 +18,49 @@ class StateMutationsTest(unittest.TestCase):
         self.assertEqual(0.0, init.old_timestamp)
 
         _, later = state_mutations.increase_elapsed_time_if_running().run(init)
-        self.assertEqual(1.0, later.elapsed_time)
+        self.assertEqual(1.0, later.elapsed_time)    
+        
+    def test_trigger_alarm_cmd_when_start_time_is_crossed_over(self):
+        init = state.load_state(
+            {
+                'timer_state': state.TimerState.RUNNING,
+                'start_time' : 300,
+                'elapsed_time': 299,
+                'old_timestamp': 0,
+            },
+            now=2,
+        )
+
+        _, later = state_mutations.increase_elapsed_time_if_running().run(init)
+        self.assertTrue(later.execute_alert_command)        
+        
+    def test_trigger_alarm_cmd_when_start_time_is_just_reached(self):
+        init = state.load_state(
+            {
+                'timer_state': state.TimerState.RUNNING,
+                'start_time' : 300,
+                'elapsed_time': 299,
+                'old_timestamp': 0,
+            },
+            now=1,
+        )
+
+        _, later = state_mutations.increase_elapsed_time_if_running().run(init)
+        self.assertTrue(later.execute_alert_command)    
+    
+    def test_do_not_trigger_alarm_cmd_when_start_time_was_already_reached(self):
+        init = state.load_state(
+            {
+                'timer_state': state.TimerState.RUNNING,
+                'start_time' : 300,
+                'elapsed_time': 300,
+                'old_timestamp': 0,
+            },
+            now=1,
+        )
+
+        _, later = state_mutations.increase_elapsed_time_if_running().run(init)
+        self.assertFalse(later.execute_alert_command)
 
     def test_do_not_increase_elapsed_time_if_stopped(self):
         init = state.load_state(

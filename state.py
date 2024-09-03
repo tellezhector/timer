@@ -35,6 +35,8 @@ def get_int(mapping: Mapping[str, str], key: str, default: int) -> int:
     res = mapping.get(key)
     if res is None:
         return default
+    if isinstance(res, int):
+        return res
     if res.isdigit():
         return int(res)
     raise exceptions.BadInteger(f'{key}="{res}" not an int')
