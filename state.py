@@ -31,35 +31,32 @@ def now():
     return datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
 
 
-def get_int(mapping: Mapping[str, str], key: str, default: int) -> int:
+def get_int(mapping: Mapping[str, Any], key: str, default: int) -> int:
     res = mapping.get(key)
     if res is None:
         return default
-    if isinstance(res, int):
-        return res
-    if res.isdigit():
+    try:
         return int(res)
-    raise exceptions.BadInteger(f'{key}="{res}" not an int')
+    except (TypeError, ValueError):
+      raise exceptions.BadInteger(f'{key}="{res}" not an int')
 
 
-def get_float(mapping: Mapping[str, str], key: str, default: float) -> float:
+def get_float(mapping: Mapping[str, Any], key: str, default: float) -> float:
     res = mapping.get(key)
     if res is None:
         return default
     try:
         return float(res)
-    except TypeError:
-        raise exceptions.BadFloat(f'{key}="{res}" not an int')
+    except (TypeError, ValueError):
+        raise exceptions.BadFloat(f'{key}="{res}" not a float')
 
 
-def get_float_or_none(mapping: Mapping[str, str], key: str) -> float | None:
-    if key in mapping:
-        return float(mapping.get(key))
-    return None
+def get_float_or_none(mapping: Mapping[str, Any], key: str) -> float | None:
+    return get_float(mapping, key, None)
 
 
 def get_enum(
-    mapping: Mapping[str, str], key: str, default: enum.Enum | None
+    mapping: Mapping[str, Any], key: str, default: enum.Enum | None
 ) -> enum.Enum:
     if default is None:
         raise exceptions.BadEnum(f"default for key {key} is None")
@@ -105,7 +102,6 @@ class State:
         )
         return res
 
-    @property
     def label(self) -> str:
         match self.timer_state:
             case TimerState.RUNNING:
@@ -155,7 +151,7 @@ class State:
 
     def serializable(self) -> dict[str, Any]:
         res = {
-            "label": self.label,
+            "label": self.label(),
             "start_time": self.start_time,
             "elapsed_time": str(self.elapsed_time),
             "timer_state": self.timer_state.value,
