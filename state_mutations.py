@@ -9,6 +9,12 @@ from monads import StateMonad
 import state as state_lib
 
 
+_ALARM_CALLER = lambda cmd: subprocess.Popen(cmd, shell=True)
+_INPUT_READ_CALLER = lambda cmd: subprocess.check_output(
+    cmd, shell=True, encoding='utf-8'
+)
+
+
 def handle_clicks(init_state: state_lib.State) -> state_lib.State:
     _, state = (
         StateMonad.get()
@@ -32,10 +38,7 @@ def handle_increments(init_state: state_lib.State) -> state_lib.State:
     )
 
     if state.execute_alert_command:
-        subprocess.call(
-            state.build_alarm_command(),
-            shell=True,
-        )
+        _ALARM_CALLER(state.build_alarm_command())
 
     return state.reset_transient_state()
 
@@ -173,9 +176,7 @@ def handle_middle_click() -> StateMonad[state_lib.State]:
     def _handle_middle_click(state: state_lib.State) -> tuple[Any, state_lib.State]:
         if state.button != state_lib.Button.MIDDLE or not state.read_input_command:
             return state
-        input = subprocess.check_output(
-            state.build_read_input_command(), shell=True, encoding='utf-8'
-        )
+        input = _INPUT_READ_CALLER(state.build_read_input_command())
         input_type, args = input_parser.parse_input(input)
         match input_type:
             case input_parser.InputType.SET_COLOR_OPTION:

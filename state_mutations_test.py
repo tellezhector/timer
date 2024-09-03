@@ -1,4 +1,5 @@
 import unittest
+import dataclasses
 
 import exceptions
 import state
@@ -197,6 +198,34 @@ class StateMutationsTest(unittest.TestCase):
         _, later = state_mutations.move_new_timestamp_to_old_timestamp().run(init)
 
         self.assertEqual(3, later.old_timestamp)
+
+    def test_middle_click_input_intake(self):
+        user_inputs = ['timer_name=new_name', '1h', '-10m']
+        def inputs(unused_arg):
+            nonlocal user_inputs
+            return user_inputs.pop(0)
+
+        state_mutations._INPUT_READ_CALLER = inputs
+        init = state.load_state(
+            mapping={'read_input_command': 'whatever', 'button': state.Button.MIDDLE},
+            now=0,
+        )
+
+        _, later = state_mutations.handle_middle_click().run(init)
+
+        self.assertEqual('new_name', later.timer_name)
+
+        # press middle click again
+        init = dataclasses.replace(later, button=state.Button.MIDDLE)
+        _, later = state_mutations.handle_middle_click().run(init)
+
+        self.assertEqual(3600, later.start_time)
+
+        # press middle click again
+        init = dataclasses.replace(later, button=state.Button.MIDDLE)
+        _, later = state_mutations.handle_middle_click().run(init)
+
+        self.assertEqual(3000, later.start_time)
 
 if __name__ == '__main__':
     unittest.main()
