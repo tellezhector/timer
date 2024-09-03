@@ -4,11 +4,13 @@ import enum
 import exceptions
 import state
 
+
 @enum.unique
 class TestEnum(enum.Enum):
     NADA = 'nada'
     UNO = 'uno'
     DOS = 'dos'
+
 
 class StateTest(unittest.TestCase):
     def test_get_float(self):
@@ -45,8 +47,12 @@ class StateTest(unittest.TestCase):
             state.get_int({'key': 'not_an_int'}, 'key', 42.0)
 
     def test_get_enum(self):
-        self.assertEqual(TestEnum.UNO, state.get_enum({'key': 'uno'}, 'key', TestEnum.NADA))
-        self.assertEqual(TestEnum.UNO, state.get_enum({'key': TestEnum.UNO}, 'key', TestEnum.NADA))
+        self.assertEqual(
+            TestEnum.UNO, state.get_enum({'key': 'uno'}, 'key', TestEnum.NADA)
+        )
+        self.assertEqual(
+            TestEnum.UNO, state.get_enum({'key': TestEnum.UNO}, 'key', TestEnum.NADA)
+        )
 
     def test_get_default_enum(self):
         self.assertEqual(TestEnum.NADA, state.get_enum({}, 'key', TestEnum.NADA))
@@ -54,6 +60,7 @@ class StateTest(unittest.TestCase):
     def test_get_bad_enum(self):
         with self.assertRaises(exceptions.BadEnum):
             state.get_enum({'key': 'not_an_enum'}, 'key', TestEnum.NADA)
+
 
 if __name__ == '__main__':
     unittest.main()

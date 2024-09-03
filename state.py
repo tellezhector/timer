@@ -197,25 +197,25 @@ class State:
         return res
 
 
-def load_state(map_: Mapping, now: float) -> State:
+def load_state(mapping: Mapping, now: float) -> State:
     state = State(
-        text_format=map_.get("text_format", "{remaining_time:pretty}"),
-        timer_name=map_.get("timer_name", "timer"),
-        start_time=get_int(map_, "start_time", 300),
-        elapsed_time=get_float(map_, "elapsed_time", 0.0),
-        old_timestamp=get_float_or_none(map_, "old_timestamp"),
+        text_format=mapping.get("text_format", "{remaining_time:pretty}"),
+        timer_name=mapping.get("timer_name", "timer"),
+        start_time=get_int(mapping, "start_time", 300),
+        elapsed_time=get_float(mapping, "elapsed_time", 0.0),
+        old_timestamp=get_float_or_none(mapping, "old_timestamp"),
         new_timestamp=now,
-        increments=get_int(map_, "increments", 60),
-        timer_state=get_enum(map_, "timer_state", TimerState.STOPPED),
-        button=get_enum(map_, "button", Button.NONE),
-        color_option=get_enum(map_, "colorize", colors.ColorOption.NEVER),
-        alarm_command=map_.get("alarm_command"),
-        read_input_command=map_.get("read_input_command"),
-        running_label=map_.get("running_label", "running:"),
-        stopped_label=map_.get("stopped_label", "timer:"),
-        paused_label=map_.get("paused_label", "paused:"),
-        error_message=map_.get("error_message"),
-        short_error_message=map_.get("short_error_message"),
-        error_duration=get_float_or_none(map_, "error_duration"),
+        increments=get_int(mapping, "increments", 60),
+        timer_state=get_enum(mapping, "timer_state", TimerState.STOPPED),
+        button=get_enum(mapping, "button", Button.NONE),
+        color_option=get_enum(mapping, "colorize", colors.ColorOption.NEVER),
+        alarm_command=mapping.get("alarm_command"),
+        read_input_command=mapping.get("read_input_command"),
+        running_label=mapping.get("running_label", "running:"),
+        stopped_label=mapping.get("stopped_label", "timer:"),
+        paused_label=mapping.get("paused_label", "paused:"),
+        error_message=mapping.get("error_message"),
+        short_error_message=mapping.get("short_error_message"),
+        error_duration=get_float_or_none(mapping, "error_duration"),
     )
     return state

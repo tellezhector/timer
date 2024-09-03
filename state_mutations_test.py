@@ -1,6 +1,6 @@
 import unittest
 
-
+import exceptions
 import state
 import state_mutations
 
@@ -18,13 +18,13 @@ class StateMutationsTest(unittest.TestCase):
         self.assertEqual(0.0, init.old_timestamp)
 
         _, later = state_mutations.increase_elapsed_time_if_running().run(init)
-        self.assertEqual(1.0, later.elapsed_time)    
-        
+        self.assertEqual(1.0, later.elapsed_time)
+
     def test_trigger_alarm_cmd_when_start_time_is_crossed_over(self):
         init = state.load_state(
             {
                 'timer_state': state.TimerState.RUNNING,
-                'start_time' : 300,
+                'start_time': 300,
                 'elapsed_time': 299,
                 'old_timestamp': 0,
             },
@@ -32,13 +32,13 @@ class StateMutationsTest(unittest.TestCase):
         )
 
         _, later = state_mutations.increase_elapsed_time_if_running().run(init)
-        self.assertTrue(later.execute_alert_command)        
-        
+        self.assertTrue(later.execute_alert_command)
+
     def test_trigger_alarm_cmd_when_start_time_is_just_reached(self):
         init = state.load_state(
             {
                 'timer_state': state.TimerState.RUNNING,
-                'start_time' : 300,
+                'start_time': 300,
                 'elapsed_time': 299,
                 'old_timestamp': 0,
             },
@@ -46,13 +46,13 @@ class StateMutationsTest(unittest.TestCase):
         )
 
         _, later = state_mutations.increase_elapsed_time_if_running().run(init)
-        self.assertTrue(later.execute_alert_command)    
-    
+        self.assertTrue(later.execute_alert_command)
+
     def test_do_not_trigger_alarm_cmd_when_start_time_was_already_reached(self):
         init = state.load_state(
             {
                 'timer_state': state.TimerState.RUNNING,
-                'start_time' : 300,
+                'start_time': 300,
                 'elapsed_time': 300,
                 'old_timestamp': 0,
             },
@@ -170,6 +170,26 @@ class StateMutationsTest(unittest.TestCase):
         self.assertEqual(state.TimerState.STOPPED, later.timer_state)
         self.assertEqual(300, later.start_time)
         self.assertEqual(0, later.elapsed_time)
+
+    def test_add_generic_error(self):
+        init = state.load_state(mapping={}, now=0)
+        some_error = ValueError('some value error')
+
+        later = state_mutations.add_error(init, some_error, 2)
+
+        self.assertEqual('some value error', later.error_message)
+        self.assertEqual(7, later.error_duration)
+        self.assertEqual(2, later.new_timestamp)
+
+    def test_add_timer_error(self):
+        init = state.load_state(mapping={}, now=0)
+        some_error = exceptions.TimerException('some timer error')
+
+        later = state_mutations.add_error(init, some_error, 2)
+
+        self.assertEqual('some timer error', later.error_message)
+        self.assertEqual(5, later.error_duration)
+        self.assertEqual(2, later.new_timestamp)
 
 
 if __name__ == '__main__':

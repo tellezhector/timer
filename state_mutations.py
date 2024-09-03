@@ -59,8 +59,7 @@ def add_error(init_state: state_lib.State, e: Exception, now: float) -> state_li
         )
 
     _, state = (
-        StateMonad.get()
-        .then(lambda state: StateMonad(lambda _: (None, _add_error(state))))
+        StateMonad.modify(_add_error)
         .run(init_state)
     )
     return state

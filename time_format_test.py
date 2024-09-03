@@ -70,5 +70,6 @@ class FormatterTest(unittest.TestCase):
             with self.subTest(expected, secs=secs, expected=expected):
                 self.assertEqual(expected, format('{time:clock}', time=secs))
 
+
 if __name__ == '__main__':
     unittest.main()

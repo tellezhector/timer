@@ -151,8 +151,12 @@ class InputParserTest(unittest.TestCase):
             (3601, '1:0:01'),
         ]
         for expected_secs, clock_time in cases:
-            with self.subTest(clock_time, clock_time=clock_time, expected_secs=expected_secs):
-                self.assertEqual(expected_secs, input_parser.clock_format_to_seconds(clock_time))
+            with self.subTest(
+                clock_time, clock_time=clock_time, expected_secs=expected_secs
+            ):
+                self.assertEqual(
+                    expected_secs, input_parser.clock_format_to_seconds(clock_time)
+                )
 
     def test_pretty_format_to_seconds(self):
         cases = [
@@ -165,8 +169,12 @@ class InputParserTest(unittest.TestCase):
             (3601, '1h1s'),
         ]
         for expected_secs, clock_time in cases:
-            with self.subTest(clock_time, clock_time=clock_time, expected_secs=expected_secs):
-                self.assertEqual(expected_secs, input_parser.pretty_time_to_seconds(clock_time))
+            with self.subTest(
+                clock_time, clock_time=clock_time, expected_secs=expected_secs
+            ):
+                self.assertEqual(
+                    expected_secs, input_parser.pretty_time_to_seconds(clock_time)
+                )
 
 
 if __name__ == '__main__':
