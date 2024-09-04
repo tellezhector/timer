@@ -172,12 +172,10 @@ def handle_scroll_down() -> StateMonad[state_lib.State]:
     return StateMonad.modify(_handle_scroll_down)
 
 
-def handle_middle_click() -> StateMonad[state_lib.State]:
-    def _handle_middle_click(state: state_lib.State) -> tuple[Any, state_lib.State]:
-        if state.button != state_lib.Button.MIDDLE or not state.read_input_command:
-            return state
-        input = _INPUT_READ_CALLER(state.build_read_input_command())
-        input_type, args = input_parser.parse_input(input)
+def _input_intake_mutation(
+    input_type: input_parser.InputType, args: list[Any]
+) -> Callable[[state_lib.State], state_lib.State]:
+    def _mutation(state: state_lib.State):
         match input_type:
             case input_parser.InputType.SET_COLOR_OPTION:
                 return dataclasses.replace(state, color_option=args[0])
@@ -210,5 +208,17 @@ def handle_middle_click() -> StateMonad[state_lib.State]:
             case input_parser.InputType.VOID:
                 return state
         raise exceptions.BadValue(f'unrecognized input {input}')
+
+    return _mutation
+
+
+def handle_middle_click() -> StateMonad[state_lib.State]:
+    def _handle_middle_click(state: state_lib.State) -> tuple[Any, state_lib.State]:
+        if state.button != state_lib.Button.MIDDLE or not state.read_input_command:
+            return state
+        input = _INPUT_READ_CALLER(state.build_read_input_command())
+        input_type, args = input_parser.parse_input(input)
+        _mutation = _input_intake_mutation(input_type, args)
+        return _mutation(state)
 
     return StateMonad.modify(_handle_middle_click)
