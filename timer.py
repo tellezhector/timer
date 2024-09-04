@@ -2,6 +2,7 @@
 import json
 import os
 import logging
+import logging.handlers
 
 import state as state_lib
 import state_mutations
@@ -10,12 +11,20 @@ import state_mutations
 if __name__ == '__main__':
     log_file = os.getenv('log_file')
     if log_file:
+        rotating_file_handler = logging.handlers.RotatingFileHandler(
+            filename=log_file, 
+            mode='a',
+            maxBytes=128*1024*1024, # 128 MB
+            backupCount=2,
+            encoding='utf-8',
+            delay=0
+        )
         logging.basicConfig(
-            filename=log_file,
             encoding='utf-8',
             level=logging.DEBUG,
             format='{asctime} {name} {levelname:8s} {message}',
             style='{',
+            handlers=[rotating_file_handler]
         )
     state = state_lib.load_state(os.environ, state_lib.now())
     try:
