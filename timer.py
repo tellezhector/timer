@@ -26,10 +26,11 @@ if __name__ == '__main__':
             style='{',
             handlers=[rotating_file_handler]
         )
+    button = state_lib.Button(os.environ.get('button'))
     state = state_lib.load_state(os.environ, state_lib.now())
     try:
-        if state.button != state_lib.Button.NONE:
-          state = state_mutations.handle_clicks(state)
+        if button != state_lib.Button.NONE:
+          state = state_mutations.handle_clicks(state, button)
         else:
           state = state_mutations.handle_increments(state)
         serialized = state.serializable()

@@ -23,5 +23,5 @@ class StateMonad(Generic[ST]):
         return StateMonad(_get)
 
     @staticmethod
-    def modify(func: Callable[['StateMonad'], 'StateMonad']):
+    def modify(func: Callable[['ST'], 'ST']) -> 'StateMonad[ST]':
         return StateMonad(lambda state: (None, func(state)))

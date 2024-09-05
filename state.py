@@ -76,7 +76,6 @@ class State:
     timer_name: str
     start_time: int
     increments: int
-    button: Button
     color_option: colors.ColorOption
     alarm_command: str | None
     read_input_command: str | None
@@ -97,7 +96,6 @@ class State:
     def reset_transient_state(self) -> 'State':
         res = dataclasses.replace(
             self,
-            button=Button.NONE,
             execute_alert_command=False,
         )
         return res
@@ -200,7 +198,6 @@ def load_state(mapping: Mapping, now: float) -> State:
         new_timestamp=now,
         increments=get_int(mapping, 'increments', 60),
         timer_state=get_enum(mapping, 'timer_state', TimerState.STOPPED),
-        button=get_enum(mapping, 'button', Button.NONE),
         color_option=get_enum(mapping, 'colorize', colors.ColorOption.NEVER),
         alarm_command=mapping.get('alarm_command'),
         read_input_command=mapping.get('read_input_command'),

@@ -15,19 +15,6 @@ _INPUT_READ_CALLER = lambda cmd: subprocess.check_output(
 )
 
 
-def handle_clicks(init_state: state_lib.State) -> state_lib.State:
-    _, state = (
-        StateMonad.get()
-        .then(lambda _: handle_middle_click())
-        .then(lambda _: handle_right_click())
-        .then(lambda _: handle_left_click())
-        .then(lambda _: handle_scroll_down())
-        .then(lambda _: handle_scroll_up())
-    ).run(init_state)
-
-    return state.reset_transient_state()
-
-
 def handle_increments(init_state: state_lib.State) -> state_lib.State:
     _, state = (
         StateMonad.get()
@@ -125,57 +112,60 @@ def move_new_timestamp_to_old_timestamp() -> StateMonad[state_lib.State]:
     return StateMonad.modify(_new_time_to_old_time)
 
 
-def handle_left_click() -> StateMonad[state_lib.State]:
-    def _handle_left_click(state: state_lib.State) -> state_lib.State:
-        if state.button != state_lib.Button.LEFT:
-            return state
-        if state.timer_state == state_lib.TimerState.RUNNING:
-            return dataclasses.replace(state, timer_state=state_lib.TimerState.PAUSED)
+def handle_clicks(
+    init_state: state_lib.State, button: state_lib.Button
+) -> state_lib.State:
+    def _on_click(
+        expected_button: state_lib.Button,
+        mutation: Callable[[state_lib.State], state_lib.State],
+    ) -> StateMonad[state_lib.State]:
+        def _action(arg):
+            if button == expected_button:
+                return StateMonad.modify(mutation)
+            return StateMonad.get()
 
-        return dataclasses.replace(state, timer_state=state_lib.TimerState.RUNNING)
+        return _action
 
-    return StateMonad.modify(_handle_left_click)
+    _, state = (
+        StateMonad.get()
+        .then(_on_click(state_lib.Button.MIDDLE, on_middle_click))
+        .then(_on_click(state_lib.Button.RIGHT, on_right_click))
+        .then(_on_click(state_lib.Button.LEFT, on_left_click))
+        .then(_on_click(state_lib.Button.SCROLL_UP, on_scroll_up))
+        .then(_on_click(state_lib.Button.SCROLL_DOWN, on_scroll_down))
+    ).run(init_state)
 
-
-def handle_right_click() -> StateMonad[state_lib.State]:
-    def _handle_left_click(state: state_lib.State) -> tuple[Any, state_lib.State]:
-        if state.button != state_lib.Button.RIGHT:
-            return state
-        return dataclasses.replace(
-            state,
-            timer_state=state_lib.TimerState.STOPPED,
-            elapsed_time=0,
-        )
-
-    return StateMonad.modify(_handle_left_click)
-
-
-def handle_scroll_up() -> StateMonad[state_lib.State]:
-    def _handle_scroll_up(state: state_lib.State) -> tuple[Any, state_lib.State]:
-        if state.button != state_lib.Button.SCROLL_UP:
-            return state
-        return dataclasses.replace(
-            state, start_time=state.start_time + state.increments
-        )
-
-    return StateMonad.modify(_handle_scroll_up)
+    return state
 
 
-def handle_scroll_down() -> StateMonad[state_lib.State]:
-    def _handle_scroll_down(state: state_lib.State) -> tuple[Any, state_lib.State]:
-        if state.button != state_lib.Button.SCROLL_DOWN:
-            return state
-        return dataclasses.replace(
-            state, start_time=max(state.start_time - state.increments, 0)
-        )
+def on_left_click(state: state_lib.State) -> state_lib.State:
+    if state.timer_state == state_lib.TimerState.RUNNING:
+        return dataclasses.replace(state, timer_state=state_lib.TimerState.PAUSED)
+    return dataclasses.replace(state, timer_state=state_lib.TimerState.RUNNING)
 
-    return StateMonad.modify(_handle_scroll_down)
+
+def on_right_click(state: state_lib.State) -> state_lib.State:
+    return dataclasses.replace(
+        state,
+        timer_state=state_lib.TimerState.STOPPED,
+        elapsed_time=0,
+    )
+
+
+def on_scroll_up(state: state_lib.State) -> state_lib.State:
+    return dataclasses.replace(state, start_time=state.start_time + state.increments)
+
+
+def on_scroll_down(state: state_lib.State) -> state_lib.State:
+    return dataclasses.replace(
+        state, start_time=max(state.start_time - state.increments, 0)
+    )
 
 
 def _input_intake_mutation(
     input_type: input_parser.InputType, args: list[Any]
 ) -> Callable[[state_lib.State], state_lib.State]:
-    def _mutation(state: state_lib.State):
+    def _mutation(state: state_lib.State) -> state_lib.State:
         match input_type:
             case input_parser.InputType.SET_COLOR_OPTION:
                 return dataclasses.replace(state, color_option=args[0])
@@ -212,13 +202,10 @@ def _input_intake_mutation(
     return _mutation
 
 
-def handle_middle_click() -> StateMonad[state_lib.State]:
-    def _handle_middle_click(state: state_lib.State) -> tuple[Any, state_lib.State]:
-        if state.button != state_lib.Button.MIDDLE or not state.read_input_command:
-            return state
-        input = _INPUT_READ_CALLER(state.build_read_input_command())
-        input_type, args = input_parser.parse_input(input)
-        _mutation = _input_intake_mutation(input_type, args)
-        return _mutation(state)
-
-    return StateMonad.modify(_handle_middle_click)
+def on_middle_click(state: state_lib.State) -> state_lib.State:
+    if not state.read_input_command:
+        return state
+    input = _INPUT_READ_CALLER(state.build_read_input_command())
+    input_type, args = input_parser.parse_input(input)
+    _mutation = _input_intake_mutation(input_type, args)
+    return _mutation(state)
