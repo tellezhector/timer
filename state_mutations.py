@@ -18,9 +18,9 @@ _INPUT_READ_CALLER = lambda cmd: subprocess.check_output(
 def handle_increments(init_state: state_lib.State) -> state_lib.State:
     _, state = (
         StateMonad.get()
-        .then(lambda _: StateMonad.modify(increase_elapsed_time_if_running))
-        .then(lambda _: StateMonad.modify(consume_error_time))
-        .then(lambda _: StateMonad.modify(move_new_timestamp_to_old_timestamp))
+        .then(lambda _: StateMonad.modify(_increase_elapsed_time_if_running))
+        .then(lambda _: StateMonad.modify(_consume_error_time))
+        .then(lambda _: StateMonad.modify(_move_new_timestamp_to_old_timestamp))
         .run(init_state)
     )
 
@@ -53,7 +53,7 @@ def add_error(init_state: state_lib.State, e: Exception, now: float) -> state_li
     return state
 
 
-def consume_error_time(state: state_lib.State) -> tuple[Any, state_lib.State]:
+def _consume_error_time(state: state_lib.State) -> tuple[Any, state_lib.State]:
     if state.error_duration is not None and state.old_timestamp is not None:
         delta = state.new_timestamp - state.old_timestamp
         new_error_time = state.error_duration - delta
@@ -69,7 +69,7 @@ def consume_error_time(state: state_lib.State) -> tuple[Any, state_lib.State]:
     return state
 
 
-def increase_elapsed_time_if_running(state: state_lib.State) -> state_lib.State:
+def _increase_elapsed_time_if_running(state: state_lib.State) -> state_lib.State:
     if (
         state.timer_state == state_lib.TimerState.RUNNING
         and state.old_timestamp is not None
@@ -95,7 +95,7 @@ def increase_elapsed_time_if_running(state: state_lib.State) -> state_lib.State:
     return state
 
 
-def move_new_timestamp_to_old_timestamp(state: state_lib.State) -> state_lib.State:
+def _move_new_timestamp_to_old_timestamp(state: state_lib.State) -> state_lib.State:
     if state.new_timestamp is not None:
         return dataclasses.replace(
             state, old_timestamp=state.new_timestamp, new_timestamp=None
@@ -119,23 +119,23 @@ def handle_clicks(
 
     _, state = (
         StateMonad.get()
-        .then(_on_click(state_lib.Button.MIDDLE, on_middle_click))
-        .then(_on_click(state_lib.Button.RIGHT, on_right_click))
-        .then(_on_click(state_lib.Button.LEFT, on_left_click))
-        .then(_on_click(state_lib.Button.SCROLL_UP, on_scroll_up))
-        .then(_on_click(state_lib.Button.SCROLL_DOWN, on_scroll_down))
+        .then(_on_click(state_lib.Button.MIDDLE, _on_middle_click))
+        .then(_on_click(state_lib.Button.RIGHT, _on_right_click))
+        .then(_on_click(state_lib.Button.LEFT, _on_left_click))
+        .then(_on_click(state_lib.Button.SCROLL_UP, _on_scroll_up))
+        .then(_on_click(state_lib.Button.SCROLL_DOWN, _on_scroll_down))
     ).run(init_state)
 
     return state
 
 
-def on_left_click(state: state_lib.State) -> state_lib.State:
+def _on_left_click(state: state_lib.State) -> state_lib.State:
     if state.timer_state == state_lib.TimerState.RUNNING:
         return dataclasses.replace(state, timer_state=state_lib.TimerState.PAUSED)
     return dataclasses.replace(state, timer_state=state_lib.TimerState.RUNNING)
 
 
-def on_right_click(state: state_lib.State) -> state_lib.State:
+def _on_right_click(state: state_lib.State) -> state_lib.State:
     return dataclasses.replace(
         state,
         timer_state=state_lib.TimerState.STOPPED,
@@ -143,11 +143,11 @@ def on_right_click(state: state_lib.State) -> state_lib.State:
     )
 
 
-def on_scroll_up(state: state_lib.State) -> state_lib.State:
+def _on_scroll_up(state: state_lib.State) -> state_lib.State:
     return dataclasses.replace(state, start_time=state.start_time + state.increments)
 
 
-def on_scroll_down(state: state_lib.State) -> state_lib.State:
+def _on_scroll_down(state: state_lib.State) -> state_lib.State:
     return dataclasses.replace(
         state, start_time=max(state.start_time - state.increments, 0)
     )
@@ -193,7 +193,7 @@ def _input_intake_mutation(
     return _mutation
 
 
-def on_middle_click(state: state_lib.State) -> state_lib.State:
+def _on_middle_click(state: state_lib.State) -> state_lib.State:
     if not state.read_input_command:
         return state
     input = _INPUT_READ_CALLER(state.build_read_input_command())
