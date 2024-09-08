@@ -20,7 +20,7 @@ def handle_increments(init_state: state_lib.State) -> state_lib.State:
         StateMonad.get()
         .then(lambda _: StateMonad.modify(increase_elapsed_time_if_running))
         .then(lambda _: consume_error_time())
-        .then(lambda _: move_new_timestamp_to_old_timestamp())
+        .then(lambda _: StateMonad.modify(move_new_timestamp_to_old_timestamp))
         .run(init_state)
     )
 
@@ -98,15 +98,12 @@ def increase_elapsed_time_if_running(state: state_lib.State) -> state_lib.State:
     return state
 
 
-def move_new_timestamp_to_old_timestamp() -> StateMonad[state_lib.State]:
-    def _new_time_to_old_time(state: state_lib.State) -> state_lib.State:
-        if state.new_timestamp is not None:
-            return dataclasses.replace(
-                state, old_timestamp=state.new_timestamp, new_timestamp=None
-            )
-        return state
-
-    return StateMonad.modify(_new_time_to_old_time)
+def move_new_timestamp_to_old_timestamp(state: state_lib.State) -> state_lib.State:
+    if state.new_timestamp is not None:
+        return dataclasses.replace(
+            state, old_timestamp=state.new_timestamp, new_timestamp=None
+        )
+    return state
 
 
 def handle_clicks(

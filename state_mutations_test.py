@@ -191,7 +191,7 @@ class StateMutationsTest(unittest.TestCase):
     def test_new_timestamp_becomes_old_timestamp_on_serialization(self):
         init = state.load_state(mapping={'old_timestamp': 1}, now=3)
 
-        _, later = state_mutations.move_new_timestamp_to_old_timestamp().run(init)
+        later = state_mutations.move_new_timestamp_to_old_timestamp(init)
 
         self.assertEqual(3, later.old_timestamp)
 
