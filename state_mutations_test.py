@@ -1,5 +1,4 @@
 import unittest
-import dataclasses
 
 import exceptions
 import state
@@ -103,7 +102,7 @@ class StateMutationsTest(unittest.TestCase):
         self.assertEqual(0.0, init.old_timestamp)
         self.assertEqual(4.0, init.error_duration)
 
-        _, later = state_mutations.consume_error_time().run(init)
+        later = state_mutations.consume_error_time(init)
         self.assertEqual(3.0, later.error_duration)
 
     def test_do_not_consume_error_time_if_there_is_no_error_duration(self):
@@ -116,7 +115,7 @@ class StateMutationsTest(unittest.TestCase):
         self.assertEqual(1.0, init.new_timestamp)
         self.assertEqual(0.0, init.old_timestamp)
 
-        _, later = state_mutations.consume_error_time().run(init)
+        later = state_mutations.consume_error_time(init)
         self.assertEqual(None, later.error_duration)
 
     def test_pause_timer_on_left_click_if_running(self):

@@ -19,7 +19,7 @@ def handle_increments(init_state: state_lib.State) -> state_lib.State:
     _, state = (
         StateMonad.get()
         .then(lambda _: StateMonad.modify(increase_elapsed_time_if_running))
-        .then(lambda _: consume_error_time())
+        .then(lambda _: StateMonad.modify(consume_error_time))
         .then(lambda _: StateMonad.modify(move_new_timestamp_to_old_timestamp))
         .run(init_state)
     )
@@ -53,23 +53,20 @@ def add_error(init_state: state_lib.State, e: Exception, now: float) -> state_li
     return state
 
 
-def consume_error_time() -> StateMonad[state_lib.State]:
-    def _consume_error_time(state: state_lib.State) -> tuple[Any, state_lib.State]:
-        if state.error_duration is not None and state.old_timestamp is not None:
-            delta = state.new_timestamp - state.old_timestamp
-            new_error_time = state.error_duration - delta
-            if new_error_time > 0:
-                return dataclasses.replace(state, error_duration=new_error_time)
-            return dataclasses.replace(
-                state,
-                error_message=None,
-                short_error_message=None,
-                error_duration=None,
-            )
+def consume_error_time(state: state_lib.State) -> tuple[Any, state_lib.State]:
+    if state.error_duration is not None and state.old_timestamp is not None:
+        delta = state.new_timestamp - state.old_timestamp
+        new_error_time = state.error_duration - delta
+        if new_error_time > 0:
+            return dataclasses.replace(state, error_duration=new_error_time)
+        return dataclasses.replace(
+            state,
+            error_message=None,
+            short_error_message=None,
+            error_duration=None,
+        )
 
-        return state
-
-    return StateMonad.modify(_consume_error_time)
+    return state
 
 
 def increase_elapsed_time_if_running(state: state_lib.State) -> state_lib.State:
