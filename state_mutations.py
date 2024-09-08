@@ -18,7 +18,7 @@ _INPUT_READ_CALLER = lambda cmd: subprocess.check_output(
 def handle_increments(init_state: state_lib.State) -> state_lib.State:
     _, state = (
         StateMonad.get()
-        .then(lambda _: increase_elapsed_time_if_running())
+        .then(lambda _: StateMonad.modify(increase_elapsed_time_if_running))
         .then(lambda _: consume_error_time())
         .then(lambda _: move_new_timestamp_to_old_timestamp())
         .run(init_state)
@@ -72,33 +72,30 @@ def consume_error_time() -> StateMonad[state_lib.State]:
     return StateMonad.modify(_consume_error_time)
 
 
-def increase_elapsed_time_if_running() -> StateMonad[state_lib.State]:
-    def _increase_elapsed_time(state: state_lib.State) -> state_lib.State:
-        if (
-            state.timer_state == state_lib.TimerState.RUNNING
-            and state.old_timestamp is not None
-        ):
-            # this delta should replace "increment", but at the moment
-            # we can't until we move to "persistent" interval.
-            delta = state.new_timestamp - state.old_timestamp
-            new_elapsed_time = state.elapsed_time + delta
-            execute_alert_command = (
-                # before this step, elapsed time had still not
-                # reached state.start_time.
-                state.elapsed_time < state.start_time
-                # by the end of this step, the new elapsed time
-                # would have reached the start_time.
-                and new_elapsed_time >= state.start_time
-            )
-            return dataclasses.replace(
-                state,
-                elapsed_time=new_elapsed_time,
-                execute_alert_command=execute_alert_command,
-            )
+def increase_elapsed_time_if_running(state: state_lib.State) -> state_lib.State:
+    if (
+        state.timer_state == state_lib.TimerState.RUNNING
+        and state.old_timestamp is not None
+    ):
+        # this delta should replace "increment", but at the moment
+        # we can't until we move to "persistent" interval.
+        delta = state.new_timestamp - state.old_timestamp
+        new_elapsed_time = state.elapsed_time + delta
+        execute_alert_command = (
+            # before this step, elapsed time had still not
+            # reached state.start_time.
+            state.elapsed_time < state.start_time
+            # by the end of this step, the new elapsed time
+            # would have reached the start_time.
+            and new_elapsed_time >= state.start_time
+        )
+        return dataclasses.replace(
+            state,
+            elapsed_time=new_elapsed_time,
+            execute_alert_command=execute_alert_command,
+        )
 
-        return state
-
-    return StateMonad.modify(_increase_elapsed_time)
+    return state
 
 
 def move_new_timestamp_to_old_timestamp() -> StateMonad[state_lib.State]:
