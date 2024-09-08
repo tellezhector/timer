@@ -4,21 +4,20 @@ import os
 import logging
 import logging_settings
 
+from typing import Any, Mapping
+
 import state as state_lib
 import state_mutations
 
 
-if __name__ == '__main__':
-    log_file = os.getenv('log_file')
-    if log_file:
-        logging_settings.log_to_file(log_file)
-    button = state_lib.Button(os.environ.get('button'))
-    state = state_lib.load_state(os.environ, state_lib.now())
+def main(mapping: Mapping[str, Any]):
+    button = state_lib.Button(mapping.get('button'))
+    state = state_lib.load_state(mapping, state_lib.now())
     try:
         if button != state_lib.Button.NONE:
-          state = state_mutations.handle_clicks(state, button)
+            state = state_mutations.handle_clicks(state, button)
         else:
-          state = state_mutations.handle_increments(state)
+            state = state_mutations.handle_increments(state)
         serialized = state.serializable()
     except Exception as e:
         logging.exception(e)
@@ -30,3 +29,10 @@ if __name__ == '__main__':
     finally:
         logging.debug(serialized)
         print(json.dumps(serialized), flush=True)
+
+
+if __name__ == '__main__':
+    log_file = os.getenv('log_file')
+    if log_file:
+        logging_settings.log_to_file(log_file)
+    main(os.environ)
