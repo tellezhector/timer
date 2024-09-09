@@ -21,9 +21,6 @@ def main(mapping: Mapping[str, Any]):
         serialized = state.serializable()
     except Exception as e:
         logging.exception(e)
-        # Since some I/O errors take longer to be generated,
-        # refreshing the timestamp is necessary to avoid time-skips or
-        # error messages shown for too little.
         state = state_mutations.add_error(state, e, state_lib.now())
         serialized = state.serializable()
     finally:

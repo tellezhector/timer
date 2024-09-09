@@ -190,13 +190,12 @@ class StateMutationsTest(unittest.TestCase):
     def test_new_timestamp_becomes_old_timestamp_on_serialization(self):
         init = state.load_state(mapping={'old_timestamp': 1}, now=3)
 
-        later = state_mutations._move_new_timestamp_to_old_timestamp(init)
+        later = state_mutations._update_old_timestamp(init)
 
         self.assertEqual(3, later.old_timestamp)
 
     def test_middle_click_input_intake(self):
         user_input = None  # to be defined during test
-
         def _inputs(unused_arg):
             return user_input
 
@@ -212,17 +211,20 @@ class StateMutationsTest(unittest.TestCase):
         # press middle_click and set name
         user_input = 'timer_name=new_name'
         later = state_mutations._on_middle_click(init)
+        later = state_mutations.handle_increments(later)
         self.assertEqual('new_name', later.timer_name)
 
         # press middle click again
         user_input = '1h'
         later = state_mutations._on_middle_click(later)
+        later = state_mutations.handle_increments(later)
         self.assertEqual('new_name', later.timer_name)
         self.assertEqual(3600, later.start_time)
 
         # press middle click again
         user_input = '-10m'
         later = state_mutations._on_middle_click(later)
+        later = state_mutations.handle_increments(later)
         self.assertEqual('new_name', later.timer_name)
         self.assertEqual(3000, later.start_time)
 

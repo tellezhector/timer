@@ -1,5 +1,6 @@
 import dataclasses
 import subprocess
+
 from typing import Any, Callable
 import logging
 
@@ -15,23 +16,49 @@ _INPUT_READ_CALLER = lambda cmd: subprocess.check_output(
 )
 
 
+def add_new_timestamp(state: state_lib.State, now: float) -> state_lib.State:
+    return dataclasses.replace(state, new_timestamp=now)
+
+
 def handle_increments(init_state: state_lib.State) -> state_lib.State:
     _, state = (
         StateMonad.get()
         .then(lambda _: StateMonad.modify(_increase_elapsed_time_if_running))
         .then(lambda _: StateMonad.modify(_consume_error_time))
-        .then(lambda _: StateMonad.modify(_move_new_timestamp_to_old_timestamp))
+        .then(lambda _: StateMonad.modify(_update_old_timestamp))
         .run(init_state)
     )
-
+    logging.debug(f'so... {state.execute_read_input_command=}')
     if state.execute_alert_command:
+        state = _reset_execute_alert_command(state)
         _ALARM_CALLER(state.build_alarm_command())
 
-    return state.reset_transient_state()
+    if state.execute_read_input_command:
+        state = _reset_execute_read_input_command(state)
+        try:
+            input = _INPUT_READ_CALLER(state.build_read_input_command())
+            input_type, args = input_parser.parse_input(input)
+            _mutation = _input_intake_mutation(input_type, args)
+            state = _mutation(state)
+        except Exception as e:
+            state = add_error(state, e, state_lib.now())
+
+    return state
+
+
+def _reset_execute_alert_command(state: state_lib.State) -> state_lib.State:
+    return dataclasses.replace(state, execute_alert_command=False)
+
+
+def _reset_execute_read_input_command(state: state_lib.State) -> state_lib.State:
+    return dataclasses.replace(state, execute_read_input_command=False)
 
 
 def add_error(init_state: state_lib.State, e: Exception, now: float) -> state_lib.State:
-    def _add_error(state: state_lib.State):
+    # Since some I/O errors take longer to be generated,
+    # refreshing the timestamp is necessary to avoid time-skips or
+    # error messages shown for too little.
+    def _add_error(state: state_lib.State) -> state_lib.State:
         full_text = str(e)
         short_text = str(e)[:40]
         # generic errors should be displayed for longer
@@ -95,11 +122,9 @@ def _increase_elapsed_time_if_running(state: state_lib.State) -> state_lib.State
     return state
 
 
-def _move_new_timestamp_to_old_timestamp(state: state_lib.State) -> state_lib.State:
+def _update_old_timestamp(state: state_lib.State) -> state_lib.State:
     if state.new_timestamp is not None:
-        return dataclasses.replace(
-            state, old_timestamp=state.new_timestamp, new_timestamp=None
-        )
+        return dataclasses.replace(state, old_timestamp=state.new_timestamp)
     return state
 
 
@@ -175,7 +200,7 @@ def _input_intake_mutation(
                 return dataclasses.replace(state, text_format=new_text_format)
 
             case input_parser.InputType.TIME_SET:
-                return dataclasses.replace(state, start_time=args[0], elapsed_time=0)
+                return dataclasses.replace(state, start_time=args[0])
 
             case input_parser.InputType.TIME_ADDITION:
                 return dataclasses.replace(
@@ -196,7 +221,4 @@ def _input_intake_mutation(
 def _on_middle_click(state: state_lib.State) -> state_lib.State:
     if not state.read_input_command:
         return state
-    input = _INPUT_READ_CALLER(state.build_read_input_command())
-    input_type, args = input_parser.parse_input(input)
-    _mutation = _input_intake_mutation(input_type, args)
-    return _mutation(state)
+    return dataclasses.replace(state, execute_read_input_command=True)

@@ -55,6 +55,17 @@ def get_float_or_none(mapping: Mapping[str, Any], key: str) -> float | None:
     return get_float(mapping, key, None)
 
 
+def get_button(mapping) -> Button:
+    res = mapping.get('button', None)
+    if res is None:
+        return Button.NONE
+    if isinstance(res, str):
+        return Button(res)
+    if isinstance(res, int):
+        return Button(str(res))
+    raise exceptions.BadEnum(f'{res} is not a valid Button')
+
+
 def get_enum(
     mapping: Mapping[str, Any], key: str, default: enum.Enum | None
 ) -> enum.Enum:
@@ -68,6 +79,20 @@ def get_enum(
         return enum_type(raw)
     except ValueError:
         raise exceptions.BadEnum(f"'{raw}' is not a {enum_type.__name__}")
+
+
+def get_bool(mapping: Mapping[str, Any], key: str) -> bool:
+    res = mapping.get(key)
+    if res is None:
+        return False
+    if isinstance(res, bool):
+        return res
+    if isinstance(res, str):
+        if res.lower() == 'true':
+            return True
+        if res.lower() == 'false':
+            return False
+    raise exceptions.BadValue(f'bad boolean {key}={res}')
 
 
 @dataclasses.dataclass(frozen=True)
@@ -87,18 +112,13 @@ class State:
     elapsed_time: float
     timer_state: TimerState
     old_timestamp: float | None
+    # TODO: make new_timestamp always not None
     new_timestamp: float | None = None
-    execute_alert_command: bool = False
     error_message: str | None = None
     short_error_message: str | None = None
     error_duration: float | None = None
-
-    def reset_transient_state(self) -> 'State':
-        res = dataclasses.replace(
-            self,
-            execute_alert_command=False,
-        )
-        return res
+    execute_read_input_command: bool = False
+    execute_alert_command: bool = False
 
     def label(self) -> str:
         match self.timer_state:
@@ -161,6 +181,8 @@ class State:
             'stopped_label': self.stopped_label,
             'paused_label': self.paused_label,
             'old_timestamp': str(self.old_timestamp),
+            'execute_read_input_command': str(self.execute_read_input_command),
+            'execute_alert_command': str(self.execute_alert_command),
         }
 
         display_error = self.error_duration is None
@@ -207,5 +229,7 @@ def load_state(mapping: Mapping, now: float) -> State:
         error_message=mapping.get('error_message'),
         short_error_message=mapping.get('short_error_message'),
         error_duration=get_float_or_none(mapping, 'error_duration'),
+        execute_read_input_command=get_bool(mapping, 'execute_read_input_command'),
+        execute_alert_command=get_bool(mapping, 'execute_alert_command'),
     )
     return state
