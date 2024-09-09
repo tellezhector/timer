@@ -72,7 +72,8 @@ text_format={remaining_time:pretty}/{start_time:pretty}
 alarm_command=/usr/bin/foo --bar biz
 
 # Any command that produces stdout from user input. I use
-# `/usr/bin/rofi -dmenu` for convenience but you can use something as simple
+# `dmenu -p "property=value | [+-]time" < /dev/null` for convenience
+# but you can use something as simple
 # as printing the content of a file.
 #
 # This command also takes the same treatment as `text_format` and

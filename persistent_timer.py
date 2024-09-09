@@ -60,10 +60,9 @@ def main(mapping: Mapping[str, Any]):
           _update_state(state_mutations.add_error(state, e, state_lib.now()))
           serialized = state.serializable()
       finally:
-          serialized['full_text'] += f' i:{counter} cls:{clicks}'
           logging.debug(serialized)
           print(json.dumps(serialized), flush=True)
-      time.sleep(0.2)
+      time.sleep(0.1)
 
 
 if __name__ == '__main__':
