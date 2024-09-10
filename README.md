@@ -87,6 +87,7 @@ read_input_command=/usr/bin/foo --bar biz
 # - colorful
 # - colorful_on_negatives
 # - red_on_negatives
+# - pulsating_traffic_light
 #
 # (default: never)
 colorize=red_on_negatives

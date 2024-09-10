@@ -27,7 +27,6 @@ def handle_increments(init_state: state_lib.State) -> state_lib.State:
         .then(lambda _: StateMonad.modify(_update_old_timestamp))
         .run(init_state)
     )
-    logging.debug(f'so... {state.execute_read_input_command=}')
     if state.execute_alert_command:
         state = _reset_execute_alert_command(state)
         _ALARM_CALLER(state.build_alarm_command())

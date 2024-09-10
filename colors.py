@@ -125,6 +125,7 @@ def multi_color_linear_loop(steps, colors: list[Color]) -> Callable[[int], Color
     return _trajectory
 
 
+WHITE = from_hex('#FFFFFF')
 NICE_RED = from_hex('#BB0A21')
 XANTHOUS = from_hex('#FFBC42')
 MOONSTONE = from_hex('#5EB1BF')
@@ -139,12 +140,44 @@ COLORS = [
     SPRING_GREEN,  # Spring green
 ]
 
+PULSATING_GREEN = multi_color_linear_loop(
+    100,
+    [
+        from_hex('#78BC61'),  # mantis
+        from_hex('#78BC61'),  # mantis
+        from_hex('#FFFFFF'),  # white
+        from_hex('#3F6A30'),  # fern green
+        from_hex('#3F6A30'),  # fern green
+    ],
+)
+
+PULSATING_YELLOW = multi_color_linear_loop(
+    100,
+    [
+        from_hex('#F5D547'),  # naples yellow
+        from_hex('#C0C781'),  # sage
+        from_hex('#E2F89C'),  # mindaro
+    ],
+)
+
+PULSATING_RED = multi_color_linear_loop(
+    100,
+    [
+        from_hex('#EE4266'),  # crayol
+        from_hex('#ED1C24'),  # cmyk
+        from_hex('#A50104'),  # white
+        from_hex('#BB0A21'),  # nice red
+        from_hex('#650D1B'),  # chocolate cosmos
+    ],
+)
+
 
 @enum.unique
 class ColorOption(enum.Enum):
     NEVER = "never"
     COLORFUL = "colorful"
     COLORFUL_ON_NEGATIVES = "colorful_on_negatives"
+    PULSATING_TRAFFIC_LIGHT = "pulsating_traffic_light"
     RED_ON_NEGATIVES = "red_on_negatives"
 
 

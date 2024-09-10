@@ -151,21 +151,7 @@ class State:
             raise exceptions.BadFormat(f'Bad syntax in {text}')
 
     def full_text(self) -> str:
-        remaining_time = self.start_time - self.elapsed_time
-        text = self.formatted(self.text_format)
-
-        match self.color_option:
-            case colors.ColorOption.COLORFUL:
-                text = colors.colorize(text)
-            case colors.ColorOption.RED_ON_NEGATIVES:
-                if remaining_time < 0:
-                    text = colors.red(text)
-            case colors.ColorOption.COLORFUL_ON_NEGATIVES:
-                if remaining_time < 0:
-                    text = colors.colorize(text)
-            case colors.ColorOption.NEVER:
-                pass
-        return text
+        return self.formatted(self.text_format)
 
     def serializable(self) -> dict[str, Any]:
         res = {
@@ -185,8 +171,20 @@ class State:
             'execute_alert_command': str(self.execute_alert_command),
         }
 
-        display_error = self.error_duration is None
+        display_error = self.error_duration is not None
         if display_error:
+            res.update(
+                {
+                    'full_text': f'{self.error_message}({self.error_duration:.1f})',
+                    'short_text': self.short_error_message,
+                    'color': colors.WHITE.hex,
+                    'background': colors.NICE_RED.hex,
+                    'error_message': self.error_message,
+                    'short_error_message': self.short_error_message,
+                    'error_duration': str(self.error_duration),
+                }
+            )
+        else:
             full_text = self.full_text()
             res.update(
                 {
@@ -194,18 +192,8 @@ class State:
                     'short_text': full_text,
                 }
             )
-        else:
-            res.update(
-                {
-                    'full_text': f'{self.error_message}({self.error_duration:.1f})',
-                    'short_text': self.short_error_message,
-                    'color': '#ffffff',
-                    'background': '#ff0000',
-                    'error_message': self.error_message,
-                    'short_error_message': self.short_error_message,
-                    'error_duration': str(self.error_duration),
-                }
-            )
+            colorized = color_dict(full_text, self)
+            res.update(colorized)
 
         return res
 
@@ -233,3 +221,36 @@ def load_state(mapping: Mapping, now: float) -> State:
         execute_alert_command=get_bool(mapping, 'execute_alert_command'),
     )
     return state
+
+
+def color_dict(text: str, state: State) -> dict[str, str]:
+    res = {'full_text': text}
+    remaining_time = state.start_time - state.elapsed_time
+    match state.color_option:
+        case colors.ColorOption.COLORFUL:
+            res['full_text'] = colors.colorize(text)
+        case colors.ColorOption.RED_ON_NEGATIVES:
+            if remaining_time < 0:
+                res['color'] = colors.NICE_RED.hex
+        case colors.ColorOption.PULSATING_TRAFFIC_LIGHT:
+            if state.timer_state == TimerState.STOPPED:
+                return res
+            if state.timer_state == TimerState.PAUSED:
+                old = state.old_timestamp if state.old_timestamp else 0
+                old = int(old * 100)
+                res['color'] = colors.PULSATING_YELLOW(old).hex
+                return res
+            remaining_ratio = (
+                remaining_time / state.start_time if state.start_time > 0 else 0
+            )
+            discrete_elapsed = int(state.elapsed_time * 100)
+            if remaining_time <= 0:
+                res['color'] = colors.PULSATING_RED(discrete_elapsed).hex
+            elif remaining_ratio < 0.1:
+                res['color'] = colors.PULSATING_YELLOW(discrete_elapsed).hex
+            else:
+                res['color'] = colors.PULSATING_GREEN(discrete_elapsed).hex
+        case colors.ColorOption.COLORFUL_ON_NEGATIVES:
+            if remaining_time < 0:
+                res['full_text'] = colors.colorize.colorize(text)
+    return res
