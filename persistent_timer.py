@@ -17,7 +17,6 @@ import state_mutations
 def main(mapping: Mapping[str, Any]):
     state = state_lib.load_state(mapping, state_lib.now())
     counter = 0
-    clicks = 0
     lock = threading.Lock()
 
     def _update_state(new_state):
@@ -27,20 +26,14 @@ def main(mapping: Mapping[str, Any]):
        lock.release()
 
     def listen_for_clicks():
-      nonlocal clicks, state
+      nonlocal state
       while True:
         line = sys.stdin.readline().strip()
-        logging.debug('clicked!')
         try:
-          clicks += 1
           mapping = json.loads(line)
           button = state_lib.get_button(mapping)
-          logging.debug(f'{button=}')
-          logging.debug(f'{mapping.get("button")=}')
           new_state = state_mutations.handle_clicks(state, button)
-          logging.debug(f'{new_state.timer_state=}')
           _update_state(new_state)
-          logging.debug(f'{state.timer_state=}')
         except Exception as e:
             logging.exception(e)
             state = _update_state(state_mutations.add_error(state, e, state_lib.now()))
