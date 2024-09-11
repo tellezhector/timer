@@ -55,7 +55,7 @@ def main(mapping: Mapping[str, Any]):
       finally:
           logging.debug(serialized)
           print(json.dumps(serialized), flush=True)
-      time.sleep(0.1)
+      time.sleep(0.07)
 
 
 if __name__ == '__main__':
