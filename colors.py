@@ -324,6 +324,8 @@ class ColorOption(enum.Enum):
     # pulsating yellow when paused
     # pulsating red when the timer has expired
     RAINBOW_ROAD = "rainbow_road"
+    # same as RAINBOW_ROAD, but in background colors instead of foreground colors.
+    BACKGROUND_RAINBOW_ROAD = "background_rainbow_road"
 
 
 def red(text: str) -> str:

@@ -245,6 +245,22 @@ def color_dict(text: str, state: State) -> dict[str, str]:
                 res['color'] = colors.PULSATING_RED(discrete_elapsed).hex
             else:
                 res['color'] = colors.RAINBOW_ROAD(discrete_elapsed).hex
+        case colors.ColorOption.BACKGROUND_RAINBOW_ROAD:
+            if state.timer_state == TimerState.STOPPED:
+                return res
+            if state.timer_state == TimerState.PAUSED:
+                old = state.old_timestamp if state.old_timestamp else 0
+                old = int(old * 100)
+                res['color'] = colors.BLACK.hex
+                res['background'] = colors.PULSATING_YELLOW(old).hex
+                return res
+            discrete_elapsed = int(state.elapsed_time * 250)
+            if remaining_time <= 0:
+                res['color'] = colors.BLACK.hex
+                res['background'] = colors.PULSATING_RED(discrete_elapsed).hex
+            else:
+                res['color'] = colors.BLACK.hex
+                res['background'] = colors.RAINBOW_ROAD(discrete_elapsed).hex
 
         case colors.ColorOption.PULSATING_TRAFFIC_LIGHT:
             if state.timer_state == TimerState.STOPPED:
