@@ -39,6 +39,8 @@ timer_name=timer
 # remaining_time (float, measured in seconds)
 # start_time     (integer, measured in seconds)
 # timer_name     (string)
+# progress_bar   (string)
+# percent        (float)
 #
 # In addition to all regular f-string formats, there are two 
 # formatters for numeric values:
@@ -56,6 +58,8 @@ timer_name=timer
 # {timer_name} {remaining_time:pretty}        → code review 4m30s
 # {timer_name:.6} {remaining_time:pretty}     → code r 4m30s
 # {remaining_time:pretty}/{start_time:pretty} → 4m30s/5m
+# {progress_bar}                              → █▁▁▁▁▁▁▁▁▁
+# {percent}                                   → 10
 #
 # (default: {remaining_time:pretty})
 text_format={remaining_time:pretty}/{start_time:pretty}

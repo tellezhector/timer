@@ -7,6 +7,7 @@ import logging
 
 import colors
 import exceptions
+import progress_bar
 import time_format
 
 
@@ -137,6 +138,10 @@ class State:
 
     def formatted(self, text) -> str:
         remaining_time = self.start_time - self.elapsed_time
+        percent = 0
+        if self.start_time > 0:
+          percent = (100 * self.elapsed_time) / self.start_time
+        percent = min(int(percent), 100)
         try:
             return time_format.FORMATTER.format(
                 text,
@@ -144,6 +149,8 @@ class State:
                 start_time=self.start_time,
                 elapsed_time=self.elapsed_time,
                 remaining_time=remaining_time,
+                progress_bar=progress_bar.progress(percent),
+                percent=percent
             )
         except KeyError as e:
             raise exceptions.BadFormat(f'Bad key {e}')
