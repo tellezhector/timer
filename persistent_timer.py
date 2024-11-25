@@ -33,8 +33,10 @@ def main(mapping: Mapping[str, Any]):
           mapping = json.loads(line)
           button = state_lib.get_button(mapping)
           new_state = state_mutations.handle_clicks(state, button)
+          logging.debug('good line "%s"', line)
           _update_state(new_state)
         except Exception as e:
+            logging.error('bad line "%s"', line)
             logging.exception(e)
             state = _update_state(state_mutations.add_error(state, e, state_lib.now()))
         
@@ -53,8 +55,9 @@ def main(mapping: Mapping[str, Any]):
           _update_state(state_mutations.add_error(state, e, state_lib.now()))
           serialized = state.serializable()
       finally:
-          logging.debug(serialized)
-          print(json.dumps(serialized), flush=True)
+          dump = json.dumps(serialized)
+          logging.debug('state as it was dumped: "%s"', dump)
+          print(dump, flush=True)
       time.sleep(0.07)
 
 
