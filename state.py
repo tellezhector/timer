@@ -99,6 +99,7 @@ def get_bool(mapping: Mapping[str, Any], key: str) -> bool:
 @dataclasses.dataclass(frozen=True)
 class State:
     text_format: str
+    short_text_format: str
     timer_name: str
     start_time: int
     increments: int
@@ -160,6 +161,9 @@ class State:
     def full_text(self) -> str:
         return self.formatted(self.text_format)
 
+    def short_text(self) -> str:
+        return self.formatted(self.short_text_format)
+
     def serializable(self) -> dict[str, Any]:
         res = {
             'label': self.label(),
@@ -168,6 +172,7 @@ class State:
             'timer_state': self.timer_state.value,
             'timer_name': self.timer_name,
             'text_format': self.text_format,
+            'short_text_format': self.short_text_format,
             'alarm_command': self.alarm_command,
             'read_input_command': self.read_input_command,
             'running_label': self.running_label,
@@ -193,13 +198,14 @@ class State:
             )
         else:
             full_text = self.full_text()
+            short_text = self.short_text()
             res.update(
                 {
                     'full_text': full_text,
-                    'short_text': full_text,
+                    'short_text': short_text,
                 }
             )
-            colorized = color_dict(full_text, self)
+            colorized = color_dict(full_text, short_text, self)
             res.update(colorized)
 
         return res
@@ -207,7 +213,8 @@ class State:
 
 def load_state(mapping: Mapping, now: float) -> State:
     state = State(
-        text_format=mapping.get('text_format', '{remaining_time:pretty}'),
+        text_format=mapping.get('text_format', '{remaining_time:pretty}/{start_time:pretty}'),
+        short_text_format=mapping.get('short_text_format', '{remaining_time:pretty}/{start_time:pretty}'),
         timer_name=mapping.get('timer_name', 'timer'),
         start_time=get_int(mapping, 'start_time', 300),
         elapsed_time=get_float(mapping, 'elapsed_time', 0.0),
@@ -230,12 +237,13 @@ def load_state(mapping: Mapping, now: float) -> State:
     return state
 
 
-def color_dict(text: str, state: State) -> dict[str, str]:
-    res = {'full_text': text}
+def color_dict(text: str, short_text: str, state: State) -> dict[str, str]:
+    res = {'full_text': text, 'short_text': short_text}
     remaining_time = state.start_time - state.elapsed_time
     match state.color_option:
         case colors.ColorOption.COLORFUL:
             res['full_text'] = colors.colorize(text)
+            res['short_text'] = colors.colorize(short_text)
         case colors.ColorOption.RED_ON_NEGATIVES:
             if remaining_time < 0:
                 res['color'] = colors.NICE_RED.hex

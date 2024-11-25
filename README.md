@@ -61,8 +61,13 @@ timer_name=timer
 # {progress_bar}                              → █▁▁▁▁▁▁▁▁▁
 # {percent}                                   → 10
 #
-# (default: {remaining_time:pretty})
+# (default: {remaining_time:pretty}/{start_time:pretty})
 text_format={remaining_time:pretty}/{start_time:pretty}
+
+# Format used when status bar doesn't have enough room.
+# All same rules from `text_format` apply.
+# (default: {remaining_time:pretty}/{start_time:pretty})
+short_text_format={remaining_time:pretty}/{start_time:pretty}
 
 # A command to execute when the timer runs out.
 #
