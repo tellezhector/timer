@@ -103,7 +103,7 @@ if __name__ == '__main__':
                 pf.write(args.action + "\n")
                 pf.flush()
         except Exception as e:
-            logging.exception('Failed to write action to pipe: %s', _PIPE_FILE_PATH)
+            logging.exception(f'Failed to write action to pipe: %s', _PIPE_FILE_PATH)
             # fallback: set environment variable for compatibility
             sys.exit(1)
 

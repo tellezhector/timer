@@ -168,7 +168,7 @@ class State:
         res = {
             'label': self.label(),
             'start_time': self.start_time,
-            'elapsed_time': str(self.elapsed_time),
+            'elapsed_time': f'{self.elapsed_time:.6f}',
             'timer_state': self.timer_state.value,
             'timer_name': self.timer_name,
             'text_format': self.text_format,
@@ -178,7 +178,7 @@ class State:
             'running_label': self.running_label,
             'stopped_label': self.stopped_label,
             'paused_label': self.paused_label,
-            'old_timestamp': str(self.old_timestamp),
+            'old_timestamp': f'{self.old_timestamp:.6f}',
             'execute_read_input_command': str(self.execute_read_input_command),
             'execute_alert_command': str(self.execute_alert_command),
         }
