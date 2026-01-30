@@ -20,6 +20,12 @@ def add_new_timestamp(state: state_lib.State, now: float) -> state_lib.State:
 
 
 def handle_increments(init_state: state_lib.State) -> state_lib.State:
+    """Handles the passage of time.
+
+    Incrementing of elapsed time, error time consumption, and old timestamp
+    updating. Also handles the execution of alert commands and read input
+    commands if flagged in the state.
+    """
     _, state = (
         StateMonad.get()
         .then(lambda _: StateMonad.modify(_increase_elapsed_time_if_running))
@@ -29,17 +35,31 @@ def handle_increments(init_state: state_lib.State) -> state_lib.State:
     )
     if state.execute_alert_command:
         state = _reset_execute_alert_command(state)
-        _ALARM_CALLER(state.build_alarm_command())
+        if state.alarm_command is not None:
+            alarm_command = state.build_alarm_command()
+            logging.debug('Executing alarm command: %s', alarm_command)
+            _ALARM_CALLER(alarm_command)
+        else:
+            logging.debug('Timer went off!!! No alarm command to execute.')
 
     if state.execute_read_input_command:
         state = _reset_execute_read_input_command(state)
-        try:
-            input = _INPUT_READ_CALLER(state.build_read_input_command())
-            input_type, args = input_parser.parse_input(input)
-            _mutation = _input_intake_mutation(input_type, args)
-            state = _mutation(state)
-        except Exception as e:
-            state = add_error(state, e, state_lib.now())
+        if state.read_input_command is not None:
+            logging.debug(
+                'Attempting to execute read input command: %s', state.read_input_command
+            )
+            try:
+                input = _INPUT_READ_CALLER(state.build_read_input_command())
+                input_type, args = input_parser.parse_input(input)
+                _mutation = _input_intake_mutation(input_type, args)
+                state = _mutation(state)
+            except Exception as e:
+                state = add_error(state, e, state_lib.now())
+        else:
+            logging.debug(
+                'Read input command requested,'
+                ' but there is no read input command defined.'
+            )
 
     return state
 
