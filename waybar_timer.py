@@ -58,11 +58,11 @@ def serve(mapping: Mapping[str, Any]):
       try:
           now_state = state_mutations.add_new_timestamp(state, state_lib.now())
           _update_state(state_mutations.handle_increments(now_state))
-          serialized = state.serializable()
+          serialized = state.serializable_for_waybar()
       except Exception as e:
           logging.exception(e)
           _update_state(state_mutations.add_error(state, e, state_lib.now()))
-          serialized = state.serializable()
+          serialized = state.serializable_for_waybar()
       finally:
           dump = json.dumps(serialized)
           logging.debug('state as it was dumped: "%s"', dump)

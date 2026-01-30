@@ -210,6 +210,24 @@ class State:
 
         return res
 
+    def serializable_for_waybar(self) -> dict[str, Any]:
+        serializable = self.serializable()
+        waybar_serializable = {}
+        # Waybar expects 'text' key instead of 'full_text'
+        waybar_serializable['text'] = serializable.get('full_text')
+
+        # Tooltip
+        waybar_serializable['tooltip'] = (
+            f"{self.label()} {self.timer_name}\n"
+            f"Start time: {self.start_time} seconds\n"
+            f"Elapsed time: {self.elapsed_time:.2f} seconds\n"
+            f"Remaining time: {self.start_time - self.elapsed_time:.2f} seconds\n"
+            f"Timer state: {self.timer_state.value}\n"
+        )
+
+        # TODO: Add class and percentage.
+        return waybar_serializable
+
 
 def load_state(mapping: Mapping, now: float) -> State:
     state = State(
