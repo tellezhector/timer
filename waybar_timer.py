@@ -96,9 +96,9 @@ def write_action(action: str):
                     result['button'] = state_lib.Button.LEFT.value
                 case 'reset':
                     result['button'] = state_lib.Button.RIGHT.value
-                case 'increment':
+                case 'increase':
                     result['button'] = state_lib.Button.SCROLL_UP.value
-                case 'decrement':
+                case 'decrease':
                     result['button'] = state_lib.Button.SCROLL_DOWN.value
                 case _:
                     logging.error('Unknown action: %s', args.action)
