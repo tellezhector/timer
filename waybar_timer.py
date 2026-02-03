@@ -6,7 +6,9 @@ import sys
 import threading
 import time
 import argparse
-from typing import Any, Mapping
+
+import socket
+import struct
 
 import logging_settings
 
@@ -17,12 +19,90 @@ import state_mutations
 # Call like `log_file=/tmp/timer_log.txt ./waybar_timer.py` to enable logging to a file
 _LOG_FILE = os.getenv('log_file', None)
 
+# Used to communicate actions to server process.
 _FIFO_FILE_PATH = os.getenv('fifo_path', '/tmp/waybar_timer.action.pipe')
 
+# A common local multicast test address and port.
+MCAST_ADDR = '224.1.1.1'
+MCAST_PORT = 5007
 
-def serve(mapping: Mapping[str, Any]):
-    state = state_lib.load_state(mapping, state_lib.now())
-    counter = 0
+# A port for a simple TCP lock to ensure only one server is running.
+LOCK_PORT = 6000
+
+class MulticastPublisher:
+    def __init__(self, mcast_addr: str, mcast_port: int):
+        self.mcast_addr = mcast_addr
+        self.mcast_port = mcast_port
+        self.sock = None
+        self.counter = 0
+
+    def setup(self):
+        # --- STEP 1: THE PUBLISHING ---
+        # Create the socket (AF_INET = IPv4, SOCK_DGRAM = UDP)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+        # --- STEP 2: Enable loopback so we can receive our own packets ---
+        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 1)
+
+
+        # --- STEP 3: Force the socket to send via the loopback interface ---
+        local_interface = socket.inet_aton('127.0.0.1')
+        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, local_interface)
+
+        # --- STEP 4: TTL ---
+        # Set Time-to-Live (TTL) to 1 so packets don't leave the local network
+        ttl = struct.pack('b', 1)
+        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
+
+    def publish(self, message: str):
+        self.sock.sendto(message.encode('utf-8'), (self.mcast_addr, self.mcast_port))
+        self.counter += 1
+        logging.debug('Published message %d.', self.counter)
+
+    @classmethod
+    def build(cls, mcast_addr: str, mcast_port: int):
+        publisher = cls(mcast_addr, mcast_port)
+        publisher.setup()
+        return publisher
+
+class MulticastSubscriber:
+    def __init__(self, mcast_addr: str, mcast_port: int):
+        self.mcast_addr = mcast_addr
+        self.mcast_port = mcast_port
+        self.sock = None
+
+    def setup(self):
+        # --- STEP 1: Create the socket
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+        # --- STEP 2: Allow multiple sockets to use the same port number
+        # This is crucial so you can run multiple copies of this script at once
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # --- STEP 3: Bind to the port
+        # '' (empty string) usually works for all interfaces.
+        self.sock.bind(('', self.mcast_port))
+
+        # --- STEP 4: Tell the OS to add this socket to the Multicast Group
+        # This is the "Magic" part that makes it Pub/Sub
+        group = socket.inet_aton(self.mcast_addr)
+        local_interface = socket.inet_aton('127.0.0.1')
+        mreq = struct.pack('4s4s', group, local_interface)
+        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+
+    def receive(self) -> str:
+        data, addr = self.sock.recvfrom(1024)  # buffer size is 1024 bytes
+        decoded = data.decode('utf-8')
+        logging.debug('Received message from %s: %s', addr, decoded)
+        return decoded
+
+    @classmethod
+    def build(cls, mcast_addr: str, mcast_port: int):
+        subscriber = cls(mcast_addr, mcast_port)
+        subscriber.setup()
+        return subscriber
+
+def serve(fifo_file_path: str, publisher: MulticastPublisher):
+    state = state_lib.load_state({}, state_lib.now())
     lock = threading.Lock()
 
     def _update_state(new_state):
@@ -34,8 +114,8 @@ def serve(mapping: Mapping[str, Any]):
     def listen_for_actions():
       nonlocal state
       while True:
-        create_fifo_if_not_exists(_FIFO_FILE_PATH)
-        with open(_FIFO_FILE_PATH, 'r') as pf:
+        create_fifo_if_not_exists(fifo_file_path)
+        with open(fifo_file_path, 'r') as pf:
             for raw in pf:
                 line = raw.strip()
                 if not line:
@@ -51,26 +131,28 @@ def serve(mapping: Mapping[str, Any]):
                     logging.exception(e)
                     _update_state(state_mutations.add_error(state, e, state_lib.now()))
 
-        
+    actions_thread = threading.Thread(group=None, target=listen_for_actions, name=None)
+    actions_thread.start()
 
-    thread = threading.Thread(group=None, target=listen_for_actions, name=None)
-    thread.start()
+    def time_ticker():
+      nonlocal state
+      while True:
+        try:
+            now_state = state_mutations.add_new_timestamp(state, state_lib.now())
+            _update_state(state_mutations.handle_increments(now_state))
+            serialized = state.serializable_for_waybar()
+        except Exception as e:
+            logging.exception(e)
+            _update_state(state_mutations.add_error(state, e, state_lib.now()))
+            serialized = state.serializable_for_waybar()
+        finally:
+            dump = json.dumps(serialized)
+            logging.debug('state as it was dumped: "%s"', dump)
+            publisher.publish(dump)
+        time.sleep(0.09)
 
-    while True:
-      counter += 1
-      try:
-          now_state = state_mutations.add_new_timestamp(state, state_lib.now())
-          _update_state(state_mutations.handle_increments(now_state))
-          serialized = state.serializable_for_waybar()
-      except Exception as e:
-          logging.exception(e)
-          _update_state(state_mutations.add_error(state, e, state_lib.now()))
-          serialized = state.serializable_for_waybar()
-      finally:
-          dump = json.dumps(serialized)
-          logging.debug('state as it was dumped: "%s"', dump)
-          print(dump, flush=True)
-      time.sleep(0.07)
+    time_ticker_thread = threading.Thread(group=None, target=time_ticker, name=None)
+    time_ticker_thread.start()
 
 
 def create_fifo_if_not_exists(fifo_path: str):
@@ -83,14 +165,14 @@ def create_fifo_if_not_exists(fifo_path: str):
         # fall back to setting env var for compatibility, then exit non-zero
         sys.exit(1)
 
-def write_action(action: str):
+def write_action(fifo_file_path: str, action: str):
     """Write the specified action to the named FIFO."""
-    create_fifo_if_not_exists(_FIFO_FILE_PATH)
+    create_fifo_if_not_exists(fifo_file_path)
 
     try:
         # Opening a FIFO for writing will block until a reader opens it.
         # This writes the action followed by a newline.
-        fd = os.open(_FIFO_FILE_PATH, os.O_WRONLY | os.O_NONBLOCK)
+        fd = os.open(fifo_file_path, os.O_WRONLY | os.O_NONBLOCK)
         with os.fdopen(fd, 'w') as pf:
             logging.debug('Writing action to FIFO: %s', action)
             result = {}
@@ -109,9 +191,21 @@ def write_action(action: str):
             pf.write(json.dumps(result) + "\n")
             pf.flush()
     except Exception as e:
-        logging.exception(f'Failed to write action to FIFO: %s', _FIFO_FILE_PATH)
+        logging.exception(f'Failed to write action to FIFO: %s', fifo_file_path)
         # fallback: set environment variable for compatibility
         sys.exit(1)
+
+def attempt_lock(lock_port: int) -> socket.socket | None:
+    """Try to acquire the lock by binding to the lock port."""
+    lock_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        lock_socket.bind(('127.0.0.1', lock_port))
+    except OSError:
+        logging.error('Another instance is already running on port %d.', lock_port)
+        print(f'will not serve! {lock_port=} is taken!')
+        return None
+    print(f'will serve! {lock_port=} is free!')
+    return lock_socket
 
 if __name__ == '__main__':
     if _LOG_FILE is not None:
@@ -130,12 +224,26 @@ if __name__ == '__main__':
         parser.error('Exactly one of --serve or --action must be specified')
 
     if args.serve:
-        # serve mode: continue running
-        serve({})
+        # If nothing else seems to be running, start a server and then
+        # listen to it for messages.
+        #
+        # If another process is already serving, then just listen as a subscriber.
+        lock_socket = attempt_lock(LOCK_PORT)
+        if lock_socket is not None:
+            publisher = MulticastPublisher.build(MCAST_ADDR, MCAST_PORT)
+            serve(_FIFO_FILE_PATH, publisher)
+
+        subscriber = MulticastSubscriber.build(MCAST_ADDR, MCAST_PORT)
+        counter = 0
+        while True:
+            logging.debug('Waiting to receive message %d', counter)
+            message = subscriber.receive()
+            print(message)
+            counter += 1
+
     # If an action was passed, write it to a named FIFO and exit.
     # FIFO path can be overridden with the `fifo_path` environment variable.
     elif args.action is not None:
-        write_action(args.action)
+        write_action(_FIFO_FILE_PATH, args.action)
         # Successfully wrote action to FIFO; exit.
         sys.exit(0)
-
