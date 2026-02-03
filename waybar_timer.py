@@ -14,8 +14,11 @@ import logging_settings
 import state as state_lib
 import state_mutations
 
-_PIPE_FILE_PATH = '/tmp/waybar_timer.action.pipe'
-_LOG_FILE = os.getenv('log_file', '/tmp/timer_log.txt')
+# Call like `log_file=/tmp/timer_log.txt ./waybar_timer.py` to enable logging to a file
+_LOG_FILE = os.getenv('log_file', None)
+
+_FIFO_FILE_PATH = os.getenv('fifo_path', '/tmp/waybar_timer.action.pipe')
+
 
 def serve(mapping: Mapping[str, Any]):
     state = state_lib.load_state(mapping, state_lib.now())
@@ -31,8 +34,8 @@ def serve(mapping: Mapping[str, Any]):
     def listen_for_actions():
       nonlocal state
       while True:
-        create_pipe_if_not_exists(_PIPE_FILE_PATH)
-        with open(_PIPE_FILE_PATH, 'r') as pf:
+        create_fifo_if_not_exists(_FIFO_FILE_PATH)
+        with open(_FIFO_FILE_PATH, 'r') as pf:
             for raw in pf:
                 line = raw.strip()
                 if not line:
@@ -70,28 +73,28 @@ def serve(mapping: Mapping[str, Any]):
       time.sleep(0.07)
 
 
-def create_pipe_if_not_exists(pipe_path: str):
-    """Create a named pipe (FIFO) at the specified path if it does not already exist."""
+def create_fifo_if_not_exists(fifo_path: str):
+    """Create a named FIFO at the specified path if it does not already exist."""
     try:
-        if not os.path.exists(pipe_path):
-            os.mkfifo(pipe_path, 0o600)
+        if not os.path.exists(fifo_path):
+            os.mkfifo(fifo_path, 0o600)
     except Exception:
-        logging.exception('Failed to ensure pipe exists: %s', pipe_path)
+        logging.exception('Failed to ensure FIFO exists: %s', fifo_path)
         # fall back to setting env var for compatibility, then exit non-zero
         sys.exit(1)
 
 def write_action(action: str):
-    """Write the specified action to the named pipe."""
-    create_pipe_if_not_exists(_PIPE_FILE_PATH)
+    """Write the specified action to the named FIFO."""
+    create_fifo_if_not_exists(_FIFO_FILE_PATH)
 
     try:
         # Opening a FIFO for writing will block until a reader opens it.
         # This writes the action followed by a newline.
-        fd = os.open(_PIPE_FILE_PATH, os.O_WRONLY | os.O_NONBLOCK)
+        fd = os.open(_FIFO_FILE_PATH, os.O_WRONLY | os.O_NONBLOCK)
         with os.fdopen(fd, 'w') as pf:
-            logging.debug('Writing action to pipe: %s', args.action)
+            logging.debug('Writing action to FIFO: %s', action)
             result = {}
-            match args.action:
+            match action:
                 case 'resume' | 'start' | 'pause' | 'start_pause':
                     result['button'] = state_lib.Button.LEFT.value
                 case 'reset':
@@ -101,17 +104,17 @@ def write_action(action: str):
                 case 'decrease':
                     result['button'] = state_lib.Button.SCROLL_DOWN.value
                 case _:
-                    logging.error('Unknown action: %s', args.action)
+                    logging.error('Unknown action: %s', action)
                     sys.exit(1)
             pf.write(json.dumps(result) + "\n")
             pf.flush()
     except Exception as e:
-        logging.exception(f'Failed to write action to pipe: %s', _PIPE_FILE_PATH)
+        logging.exception(f'Failed to write action to FIFO: %s', _FIFO_FILE_PATH)
         # fallback: set environment variable for compatibility
         sys.exit(1)
 
 if __name__ == '__main__':
-    if _LOG_FILE:
+    if _LOG_FILE is not None:
         logging_settings.log_to_file(_LOG_FILE)
     
     parser = argparse.ArgumentParser(description='Waybar timer')
@@ -129,10 +132,10 @@ if __name__ == '__main__':
     if args.serve:
         # serve mode: continue running
         serve({})
-    # If an action was passed, write it to a named pipe and exit.
-    # Pipe path can be overridden with the ACTION_PIPE environment variable.
+    # If an action was passed, write it to a named FIFO and exit.
+    # FIFO path can be overridden with the `fifo_path` environment variable.
     elif args.action is not None:
         write_action(args.action)
-        # Successfully wrote action to pipe; exit.
+        # Successfully wrote action to FIFO; exit.
         sys.exit(0)
 
