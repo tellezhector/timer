@@ -151,7 +151,9 @@ class State:
                 elapsed_time=self.elapsed_time,
                 remaining_time=remaining_time,
                 progress_bar=progress_bar.progress(percent),
-                percent=percent
+                percent=percent,
+                # colors get computed later, for now preserve the placeholder.
+                foreground_color='{foreground_color}',
             )
         except KeyError as e:
             raise exceptions.BadFormat(f'Bad key {e}')
@@ -214,8 +216,11 @@ class State:
         serializable = self.serializable()
         waybar_serializable = {}
         # Waybar expects 'text' key instead of 'full_text'
-        waybar_serializable['text'] = serializable.get('full_text')
-
+        text = serializable.get('full_text', '')
+        foreground_color = serializable.get('color', '')
+        if foreground_color:
+            text = text.format(foreground_color=foreground_color)
+        waybar_serializable['text'] = text
         # Tooltip
         waybar_serializable['tooltip'] = (
             f"{self.label()} {self.timer_name}\n"
@@ -262,9 +267,11 @@ def color_dict(text: str, short_text: str, state: State) -> dict[str, str]:
         case colors.ColorOption.COLORFUL:
             res['full_text'] = colors.colorize(text)
             res['short_text'] = colors.colorize(short_text)
+
         case colors.ColorOption.RED_ON_NEGATIVES:
             if remaining_time < 0:
                 res['color'] = colors.NICE_RED.hex
+
         case colors.ColorOption.RAINBOW_ROAD:
             if state.timer_state == TimerState.STOPPED:
                 return res
@@ -278,6 +285,7 @@ def color_dict(text: str, short_text: str, state: State) -> dict[str, str]:
                 res['color'] = colors.PULSATING_RED(discrete_elapsed).hex
             else:
                 res['color'] = colors.RAINBOW_ROAD(discrete_elapsed).hex
+
         case colors.ColorOption.BACKGROUND_RAINBOW_ROAD:
             if state.timer_state == TimerState.STOPPED:
                 return res
@@ -313,6 +321,7 @@ def color_dict(text: str, short_text: str, state: State) -> dict[str, str]:
                 res['color'] = colors.PULSATING_YELLOW(discrete_elapsed).hex
             else:
                 res['color'] = colors.PULSATING_GREEN(discrete_elapsed).hex
+
         case colors.ColorOption.COLORFUL_ON_NEGATIVES:
             if remaining_time < 0:
                 res['full_text'] = colors.colorize.colorize(text)
