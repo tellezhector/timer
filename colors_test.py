@@ -6,6 +6,10 @@ import colors
 
 
 class ColorsTest(unittest.TestCase):
+    def test_hex__color_hex_string_can_be_retreived(self):
+        color = colors.from_hex('#FF00FF')
+        self.assertEqual('#FF00FF', color.hex)
+
     def test_bad_color_length(self):
         with self.assertRaisesRegex(exceptions.BadColor, 'must have 3 or 6 hex digits.'):
             colors.from_hex('#1234')
