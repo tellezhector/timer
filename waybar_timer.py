@@ -108,7 +108,15 @@ class MulticastSubscriber:
 
 
 def serve(fifo_file_path: str, publisher: MulticastPublisher):
-    state = state_lib.load_state({}, state_lib.now())
+    state = state_lib.load_state(
+        {
+            'alarm_command': '/usr/bin/notify-send -u critical -c alarm -- "Timer is up!" "your {start_time} timer is up! $(date)";',
+            'start_time': 300,
+            'colorize': 'rainbow_road',
+            'text_format': "<span font='monospace'>{remaining_time:pretty}/{start_time:pretty} ⎹{progress_bar}⎸<span size='xx-small'>{percent: >3}%</span></span>",
+        },
+        state_lib.now(),
+    )
     lock = threading.Lock()
 
     def _update_state(new_state):
