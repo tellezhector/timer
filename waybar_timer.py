@@ -242,7 +242,7 @@ def serve_or_take_over__then_listen(
         try:
             while True:
                 message = subscriber.receive()
-                print(message)
+                print(message, flush=True)
         except socket.timeout:
             logging.error(
                 'No message received within timeout period (%.3f seconds); trying to take over as server.',
